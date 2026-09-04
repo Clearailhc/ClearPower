@@ -1,3 +1,4 @@
+import Cairo from 'gi://cairo';
 import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
 import PangoCairo from 'gi://PangoCairo';
@@ -14,16 +15,16 @@ export function roundRect(cr, x, y, w, h, r) {
 }
 
 const COLORS = {
-    charging: [0.36, 0.76, 0.48],
-    inhibited: [0.35, 0.69, 0.94],
-    discharging: [0.62, 0.64, 0.66],
-    forced: [0.95, 0.60, 0.30],
+    charging: [0.40, 0.78, 0.52],
+    inhibited: [0.38, 0.70, 0.94],
+    discharging: [0.62, 0.65, 0.69],
+    forced: [0.95, 0.62, 0.32],
 };
 
 export const BatteryBar = GObject.registerClass(
 class BatteryBar extends St.DrawingArea {
     _init() {
-        super._init({x_expand: true, height: 30});
+        super._init({x_expand: true, height: 28});
         this._state = {pct: 0, limit: 100, status: '', mode: 'limit', onAc: false};
         this.connect('repaint', () => this._draw());
     }
@@ -42,7 +43,7 @@ class BatteryBar extends St.DrawingArea {
         const r = h / 2;
 
         roundRect(cr, 0, 0, w, h, r);
-        cr.setSourceRGBA(0.5, 0.5, 0.5, 0.22);
+        cr.setSourceRGBA(0.5, 0.5, 0.5, 0.18);
         cr.fill();
 
         let kind = 'discharging';
@@ -56,8 +57,11 @@ class BatteryBar extends St.DrawingArea {
         }
         const [cr_, cg, cb] = COLORS[kind];
         const fillW = Math.max(h, w * Math.min(pct, 100) / 100);
+        const g = new Cairo.LinearGradient(0, 0, 0, h);
+        g.addColorStopRGBA(0, cr_ * 1.08, cg * 1.08, cb * 1.08, 0.92);
+        g.addColorStopRGBA(1, cr_ * 0.88, cg * 0.88, cb * 0.88, 0.92);
         roundRect(cr, 0, 0, fillW, h, r);
-        cr.setSourceRGBA(cr_, cg, cb, 0.85);
+        cr.setSource(g);
         cr.fill();
 
         if (limit < 100) {
@@ -66,7 +70,7 @@ class BatteryBar extends St.DrawingArea {
             cr.setLineWidth(1.5);
             cr.moveTo(x, 5);
             cr.lineTo(x, h - 5);
-            cr.setSourceRGBA(fg.red / 255, fg.green / 255, fg.blue / 255, 0.8);
+            cr.setSourceRGBA(fg.red / 255, fg.green / 255, fg.blue / 255, 0.7);
             cr.stroke();
             cr.setDash([], 0);
         }
@@ -75,13 +79,10 @@ class BatteryBar extends St.DrawingArea {
         font.set_weight(Pango.Weight.BOLD);
         const layout = PangoCairo.create_layout(cr);
         layout.set_font_description(font);
-        layout.set_text(`${pct}%`, -1);
-        const [tw, th] = layout.get_pixel_size();
-        // White on the coloured fill, theme colour on the empty track.
-        const onFill = x => x <= fillW - 6;
-        const paint = (x, y, tw_) => {
-            if (onFill(x + tw_)) {
-                cr.setSourceRGBA(0, 0, 0, 0.25);
+        const paint = (text, x, y, tw) => {
+            layout.set_text(text, -1);
+            if (x + tw <= fillW - 6) {
+                cr.setSourceRGBA(0, 0, 0, 0.22);
                 cr.moveTo(x + 1, y + 1);
                 PangoCairo.show_layout(cr, layout);
                 cr.setSourceRGBA(1, 1, 1, 0.95);
@@ -91,11 +92,12 @@ class BatteryBar extends St.DrawingArea {
             cr.moveTo(x, y);
             PangoCairo.show_layout(cr, layout);
         };
-        paint(12, (h - th) / 2, tw);
-
+        layout.set_text(`${pct}%`, -1);
+        const [tw, th] = layout.get_pixel_size();
+        paint(`${pct}%`, 12, (h - th) / 2, tw);
         layout.set_text(glyph, -1);
         const [gw, gh] = layout.get_pixel_size();
-        paint((w - gw) / 2, (h - gh) / 2, gw);
+        paint(glyph, (w - gw) / 2, (h - gh) / 2, gw);
         cr.$dispose();
     }
 });

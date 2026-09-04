@@ -20,6 +20,8 @@ class Sampler:
         self.hwmon = Hwmon()
         self.procs = Procs(cfg["procs_interval_s"])
         self.last = {}
+        self._thermal = {"temp_cpu": -1.0, "temp_gpu": -1.0, "temp_nvme": -1.0, "fan1": -1, "fan2": -1}
+        self._thermal_at = -1e9
 
     def _display_w(self, bl):
         if not bl["display_on"]:
@@ -28,7 +30,15 @@ class Sampler:
         pmin, pmax = self.cfg["display_p_min_w"], self.cfg["display_p_max_w"]
         return pmin + (pmax - pmin) * frac
 
-    def sample(self):
+    def _thermal_read(self, hot):
+        """EC-backed temps/fans cost ~40 ms; only read while someone is looking, every 3 s."""
+        now = time.monotonic()
+        if hot and now - self._thermal_at >= 3.0:
+            self._thermal = self.hwmon.read()
+            self._thermal_at = now
+        return self._thermal
+
+    def sample(self, hot=True):
         snap = {"ts": time.time()}
         bat = self.battery.read()
         ad = self.adapter.read()
@@ -37,7 +47,7 @@ class Sampler:
         snap.update(bat)
         snap.update(ad)
         snap.update(bl)
-        snap.update(self.hwmon.read())
+        snap.update(self._thermal_read(hot))
 
         soc_w = rapl.get("package", -1.0)
         psys_w = rapl.get("psys", -1.0)
@@ -78,6 +88,5 @@ class Sampler:
             "platform_profile": read_str("/sys/firmware/acpi/platform_profile") or "",
             "rapl_available": bool(rapl),
         })
-        snap["top_procs"] = self.procs.maybe_sample(soc_w)
         self.last = snap
         return snap

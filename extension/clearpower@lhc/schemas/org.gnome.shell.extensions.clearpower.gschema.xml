@@ -6,7 +6,16 @@
     <value nick="both" value="2"/>
     <value nick="none" value="3"/>
   </enum>
+  <enum id="org.gnome.shell.extensions.clearpower.flow-animation">
+    <value nick="always" value="0"/>
+    <value nick="on-ac" value="1"/>
+    <value nick="never" value="2"/>
+  </enum>
   <schema id="org.gnome.shell.extensions.clearpower" path="/org/gnome/shell/extensions/clearpower/">
+    <key name="flow-animation" enum="org.gnome.shell.extensions.clearpower.flow-animation">
+      <default>'on-ac'</default>
+      <summary>Animate the power-flow diagram (always / only on AC / never)</summary>
+    </key>
     <key name="panel-text" enum="org.gnome.shell.extensions.clearpower.panel-text">
       <default>'watts'</default>
       <summary>What to show next to the panel icon</summary>

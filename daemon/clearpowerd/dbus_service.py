@@ -37,6 +37,7 @@ class Service:
         self.charge = charge
         self.history = history
         self.insecure = insecure  # skip polkit (session-bus dev mode only)
+        self.last_client_activity = 0.0  # monotonic time of the last detail request
         with open(XML_PATH) as f:
             self.node = Gio.DBusNodeInfo.new_for_xml(f.read())
         self.conn = None
@@ -108,6 +109,7 @@ class Service:
                         self.charge.cancel()
                     log.info("%s%s by %s -> %s", method, params.unpack(), sender, self.charge.state())
                     invocation.return_value(None)
+                    self.sampler.battery.invalidate()
                     self.emit_charge_changed()
                 except OSError as e:
                     msg = f"{e.strerror or e} (errno {e.errno})"
@@ -118,8 +120,11 @@ class Service:
             else:
                 polkit.check(conn, sender, POLKIT_ACTION, go)
         elif method == "GetTopProcesses":
+            import time
+            self.last_client_activity = time.monotonic()
             n = params.unpack()[0]
-            procs = [(nm, float(w), float(c)) for nm, w, c in self.sampler.procs.top[:n]]
+            soc_w = self.sampler.last.get("soc_w", -1.0)
+            procs = [(nm, float(w), float(c)) for nm, w, c in self.sampler.procs.maybe_sample(soc_w, n)]
             invocation.return_value(GLib.Variant("(a(sdd))", (procs,)))
         elif method == "GetHistory":
             field, secs = params.unpack()

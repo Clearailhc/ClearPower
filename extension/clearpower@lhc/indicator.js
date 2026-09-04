@@ -44,9 +44,23 @@ class Indicator extends PanelMenu.Button {
         ];
         this._profId = profiles.connect('changed', () => this._syncProfiles());
         this._settingsId = settings.connect('changed::panel-text', () => this._updatePanel());
+        this._flowId = settings.connect('changed::flow-animation',
+            () => this._sankey.setFlowMode(settings.get_string('flow-animation')));
+        this._sankey.setFlowMode(settings.get_string('flow-animation'));
+        this._appsTimer = 0;
         this.menu.connect('open-state-changed', (_m, open) => {
-            if (open)
+            this._sankey.setActive(open);
+            if (open) {
                 this._refreshAll();
+                this._pollApps();
+                this._appsTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, 3, () => {
+                    this._pollApps();
+                    return GLib.SOURCE_CONTINUE;
+                });
+            } else if (this._appsTimer) {
+                GLib.source_remove(this._appsTimer);
+                this._appsTimer = 0;
+            }
         });
         this._syncOnline();
         this._syncState();
@@ -239,7 +253,12 @@ class Indicator extends PanelMenu.Button {
         if (snap.fan1 > 0)
             parts.push(`${snap.fan1} rpm`);
         this._temps.text = parts.join(' · ');
-        this._refreshApps(snap.top_procs ?? []);
+    }
+
+    _pollApps() {
+        this._client.getTopProcesses(3)
+            .then(procs => this._refreshApps(procs))
+            .catch(e => console.error(`ClearPower: GetTopProcesses: ${e.message}`));
     }
 
     _refreshApps(procs) {
@@ -273,17 +292,23 @@ class Indicator extends PanelMenu.Button {
         const mode = this._settings.get_string('panel-text');
         const w = fmtW(snap.sys_w, 1);
         const p = `${snap.bat_pct ?? 0}%`;
-        this._label.text = {watts: w, percent: p, both: `${w} · ${p}`, none: ''}[mode] ?? w;
-        this._label.visible = this._label.text !== '';
+        const text = {watts: w, percent: p, both: `${w} · ${p}`, none: ''}[mode] ?? w;
+        if (this._label.text !== text) {
+            this._label.text = text;
+            this._label.visible = text !== '';
+        }
     }
 
     destroy() {
         if (this._commitTimer)
             GLib.source_remove(this._commitTimer);
+        if (this._appsTimer)
+            GLib.source_remove(this._appsTimer);
         for (const id of this._clientIds)
             this._client.disconnect(id);
         this._profiles.disconnect(this._profId);
         this._settings.disconnect(this._settingsId);
+        this._settings.disconnect(this._flowId);
         super.destroy();
     }
 });

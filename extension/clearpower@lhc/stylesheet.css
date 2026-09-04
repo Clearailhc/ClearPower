@@ -1,15 +1,16 @@
-.clearpower-menu { width: 400px; spacing: 10px; padding: 4px 6px; }
+.clearpower-menu { width: 400px; spacing: 10px; padding: 6px 8px; }
 .clearpower-row { spacing: 8px; }
 .clearpower-pill {
-  background-color: rgba(128, 128, 128, 0.22);
+  background-color: rgba(128, 128, 128, 0.16);
   border-radius: 14px; padding: 4px 12px; font-weight: bold;
 }
 .clearpower-btn { padding: 4px 12px; border-radius: 14px; }
 .clearpower-btn StIcon { icon-size: 16px; }
-.clearpower-btn:checked { background-color: rgba(74, 144, 226, 0.45); }
+.clearpower-btn:checked { background-color: rgba(92, 153, 235, 0.40); }
 .clearpower-icon-btn { padding: 4px 8px; border-radius: 14px; }
+.clearpower-icon-btn:checked { background-color: rgba(92, 153, 235, 0.40); }
 .clearpower-dim { color: rgba(160, 160, 160, 0.9); font-size: 0.9em; }
-.clearpower-apps { background-color: rgba(128, 128, 128, 0.15); border-radius: 14px; padding: 8px 12px; spacing: 4px; }
+.clearpower-apps { background-color: rgba(128, 128, 128, 0.12); border-radius: 14px; padding: 8px 12px; spacing: 4px; }
 .clearpower-app-row { spacing: 8px; }
 .clearpower-panel-label { padding-left: 4px; font-feature-settings: "tnum"; }
 .clearpower-error { color: #e07a5f; }

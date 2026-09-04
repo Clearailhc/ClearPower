@@ -43,14 +43,25 @@ def main(argv=None):
     service = Service(sampler, charge, history, bus, insecure=(args.bus == "session"))
     loop = GLib.MainLoop()
 
+    import time
+    state = {"interval": cfg["sample_interval_ms"]}
+
     def tick():
+        hot = (time.monotonic() - service.last_client_activity) < cfg["hot_seconds"]
         try:
-            snap = sampler.sample()
+            snap = sampler.sample(hot)
             charge.tick(snap)
             history.add(snap)
             service.emit_sample(snap)
         except Exception:  # keep the loop alive no matter what
             log.exception("sample failed")
+        # Adaptive rate: 1 Hz while someone is looking at details, slower otherwise.
+        # Special charge modes need prompt reaction, so keep them at full rate too.
+        want = cfg["sample_interval_ms"] if (hot or charge.mode != "limit") else cfg["idle_interval_ms"]
+        if want != state["interval"]:
+            state["interval"] = want
+            GLib.timeout_add(want, tick)
+            return GLib.SOURCE_REMOVE
         return GLib.SOURCE_CONTINUE
 
     def stop(*_):
@@ -59,7 +70,7 @@ def main(argv=None):
         loop.quit()
         return GLib.SOURCE_REMOVE
 
-    GLib.timeout_add(cfg["sample_interval_ms"], tick)
+    GLib.timeout_add(state["interval"], tick)
     try:
         gi.require_version("GLibUnix", "2.0")
         from gi.repository import GLibUnix

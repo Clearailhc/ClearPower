@@ -8,8 +8,10 @@ STATE_PATH = os.path.join(STATE_DIR, "state.json")
 
 DEFAULTS = {
     "battery": "BAT0",
-    "sample_interval_ms": 1000,
-    "procs_interval_s": 2,
+    "sample_interval_ms": 1000,     # while a client is watching (popover open)
+    "idle_interval_ms": 2000,       # nobody asked for details in the last `hot_seconds`
+    "hot_seconds": 6,
+    "procs_interval_s": 3,
     # Display power model (estimate): W = p_min + (p_max - p_min) * brightness_fraction
     "display_p_min_w": 0.8,
     "display_p_max_w": 5.0,

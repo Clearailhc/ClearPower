@@ -116,6 +116,12 @@ export class DaemonClient extends EventEmitter {
         await this._proxy.CancelSpecialAsync();
     }
 
+    /** [[name, watts, cpuPercent], ...] — computed by the daemon on demand only. */
+    async getTopProcesses(n = 3) {
+        const [procs] = await this._proxy.GetTopProcessesAsync(n);
+        return procs;
+    }
+
     destroy() {
         if (this._proxy) {
             if (this._sigId)
