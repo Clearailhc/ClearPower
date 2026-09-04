@@ -2,6 +2,21 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.5.0] — 2026-09-04
+
+First release shipped for all three platforms at once (one GitHub Release with the Linux
+`.deb`, the macOS `.dmg`, the Windows installer + portable zip and a single `SHA256SUMS`,
+built by `.github/workflows/build.yml`).
+
+### Changed
+- README rewritten as the project front page, with a Chinese version (`README.zh-CN.md`);
+  Linux details moved to `docs/linux.md`.
+
+### Fixed
+- Windows: the popover flashed and closed on a tray click (a version-4 tray icon reports one
+  click twice); the settings window could be taller than the screen (now scrolls); an energy
+  sample taken within 200 ms of the previous one no longer drops the breakdown for a tick.
+
 ## [0.4.0] — 2026-09-04
 
 ### Added

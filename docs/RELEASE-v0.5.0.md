@@ -5,7 +5,7 @@ Battery charge control and an honest, live power-flow view for laptops — now o
 | | |
 |---|---|
 | **New platform** | Windows 11 x64 (Windows 10 runs with a single "system" node: no Energy Meter Interface) |
-| **Package** | `ClearPower-Setup-0.4.0-x64.exe` (per-user installer, no admin), `ClearPower-0.4.0-x64-portable.zip` (single exe) |
+| **Package** | `ClearPower-Setup-0.5.0-x64.exe` (per-user installer, no admin), `ClearPower-0.5.0-x64-portable.zip` (single exe) |
 | **Full feature set** | Intel laptops (RAPL via the Windows 11 Energy Meter Interface) that are ThinkPads with the Lenovo Power Manager driver (charge thresholds) |
 | **Partial** | No Energy Meter → single "system" node, no display calibration · No Lenovo Power Manager → charge controls hidden · Discharge is never available on Windows · no temperatures / fans |
 | **Tested on** | ThinkPad X14 Gen 1 (Core Ultra X7 358H, Samsung OLED), Windows 11 24H2 build 26200 |

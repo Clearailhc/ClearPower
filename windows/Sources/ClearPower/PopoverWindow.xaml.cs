@@ -27,6 +27,8 @@ namespace ClearPower.App
         private readonly DispatcherTimer _appsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         private readonly DispatcherTimer _contentTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ContentIntervalS) };
         public DateTime HiddenAt { get; private set; } = DateTime.MinValue;
+        private DateTime _shownAt = DateTime.MinValue;
+        private bool _reactivated;
 
         [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
@@ -37,7 +39,18 @@ namespace ClearPower.App
             _state = state;
             _appsTimer.Tick += (_, _) => PollApps();
             _contentTimer.Tick += (_, _) => SampleContent();
-            Deactivated += (_, _) => HidePopover();
+            Deactivated += (_, _) =>
+            {
+                // Explorer sometimes takes the foreground back right after the tray click;
+                // re-assert once within the first half second, hide on any later deactivation.
+                if ((DateTime.UtcNow - _shownAt).TotalMilliseconds < 500 && !_reactivated)
+                {
+                    _reactivated = true;
+                    Dispatcher.BeginInvoke(new Action(() => { if (IsVisible) { Activate(); SetForegroundWindow(new WindowInteropHelper(this).Handle); } }));
+                    return;
+                }
+                HidePopover();
+            };
             KeyDown += (_, e) => { if (e.Key == Key.Escape) HidePopover(); };
             SourceInitialized += (_, _) =>
             {
@@ -55,6 +68,8 @@ namespace ClearPower.App
             _state.Engine.Touch();
             _state.Engine.Poke();
             RefreshAll();
+            _shownAt = DateTime.UtcNow;
+            _reactivated = false;
             Opacity = 0;
             Show();
             UpdateLayout();

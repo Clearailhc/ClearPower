@@ -200,15 +200,15 @@ namespace ClearPower.App
                 var ev = (int)(lParam.ToInt64() & 0xFFFF);
                 var x = (short)(wParam.ToInt64() & 0xFFFF);
                 var y = (short)((wParam.ToInt64() >> 16) & 0xFFFF);
+                // Version-4 icons report a click as NIN_SELECT *and* the raw mouse messages;
+                // only act on the high-level notifications, or one click toggles twice.
                 switch (ev)
                 {
                     case NIN_SELECT:
                     case NIN_KEYSELECT:
-                    case WM_LBUTTONUP:
                         Activated?.Invoke();
                         break;
                     case WM_CONTEXTMENU:
-                    case WM_RBUTTONUP:
                         ContextMenu?.Invoke(x, y);
                         break;
                 }

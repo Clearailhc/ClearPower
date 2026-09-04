@@ -26,6 +26,8 @@ namespace ClearPower.App
         {
             InitializeComponent();
             _state = state;
+            // Never taller than the screen: the content scrolls instead.
+            MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 40);
             _limitTimer.Tick += (_, _) =>
             {
                 _limitTimer.Stop();
