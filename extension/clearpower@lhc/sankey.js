@@ -307,21 +307,32 @@ class Sankey extends St.DrawingArea {
         const m = this._model(s);
         const scale = this._layout(m, W, H);
 
-        // Bands: soft two-colour gradient plus (optionally) a slow travelling sheen.
+        // Bands. Seam-free recipe: (1) clip away the node cards so bands slide under their
+        // rounded outlines, (2) paint every band opaque into one group with a hair of overlap,
+        // (3) composite the group once at 30 % — no antialiased edges between neighbours.
         const sheen = this._active && this._sheenEnabled();
+        const R = 12, EXT = 10, OVERLAP = 0.35;
+        cr.save();
+        cr.rectangle(0, 0, W, H);
+        for (const n of Object.values(m.nodes))
+            roundRect(cr, n.x, n.y, n.w_px, n.h, R);
+        cr.setFillRule(Cairo.FillRule.EVEN_ODD);
+        cr.clip();
+        cr.pushGroup();
         for (const f of m.flows) {
             const a = m.nodes[f.a], b = m.nodes[f.b];
+            const t = Math.max(f.w * scale, 2);
             const band = {
-                x0: a.x + a.w_px, y0: a.y + a.outOff,
-                x1: b.x, y1: b.y + b.inOff,
-                t: Math.max(f.w * scale, 2),
+                x0: a.x + a.w_px - EXT, y0: a.y + a.outOff - OVERLAP,
+                x1: b.x + EXT, y1: b.y + b.inOff - OVERLAP,
+                t: t + 2 * OVERLAP,
             };
-            a.outOff += band.t;
-            b.inOff += band.t;
+            a.outOff += t;
+            b.inOff += t;
             this._traceBand(cr, band);
             const g = new Cairo.LinearGradient(band.x0, 0, band.x1, 0);
-            g.addColorStopRGBA(0, ...a.color, 0.30);
-            g.addColorStopRGBA(1, ...b.color, 0.30);
+            g.addColorStopRGBA(0, ...a.color, 1);
+            g.addColorStopRGBA(1, ...b.color, 1);
             cr.setSource(g);
             cr.fill();
             if (sheen) {
@@ -333,12 +344,15 @@ class Sankey extends St.DrawingArea {
                     .sort((p, q) => p - q);
                 const sg = new Cairo.LinearGradient(band.x0, 0, band.x1, 0);
                 for (const x of stops)
-                    sg.addColorStopRGBA(x, 1, 1, 1, 0.16 * tri(x));
+                    sg.addColorStopRGBA(x, 1, 1, 1, 0.5 * tri(x));
                 this._traceBand(cr, band);
                 cr.setSource(sg);
                 cr.fill();
             }
         }
+        cr.popGroupToSource();
+        cr.paintWithAlpha(0.32);
+        cr.restore();
 
         this._paintNodeLayer(cr, m, W, H, node, fg);
         cr.$dispose();
