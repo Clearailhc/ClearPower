@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Windows hardware sources (PDH energy meter, WMI battery, brightness, Lenovo RPC) + the sampling engine. -->
+  <PropertyGroup>
+    <RootNamespace>ClearPower.Win</RootNamespace>
+    <AssemblyName>ClearPower.Win</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <ProjectReference Include="..\ClearPowerCore\ClearPowerCore.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\*.bin" />
+  </ItemGroup>
+</Project>
+

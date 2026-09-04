@@ -2,6 +2,25 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.4.0] — 2026-09-04
+
+### Added
+- **Windows 11 (x64)**: tray app with the same popover, in `windows/` (C# / WPF on the
+  in-box .NET Framework 4.8 — a single 200 KB `ClearPower.exe`, no runtime download, no
+  service, no driver, no administrator prompt). RAPL comes from the Windows 11 Energy Meter
+  Interface (`\Energy Meter(RAPL_Package0_*)` counters), the battery from the battery class
+  driver IOCTLs, brightness from WMI, the power mode from the overlay-scheme API. Charge
+  thresholds are written through Lenovo Power Manager's local RPC interface (ThinkPads),
+  driven from C# via `NdrClientCall2` with embedded NDR format strings. Display calibration
+  runs on battery (the only whole-machine sensor on Windows); on AC the total is estimated
+  from SoC + memory + the calibrated baseline and marked ≈. Per-user Inno Setup installer,
+  portable zip and a GitHub Actions workflow (`windows/build.ps1`).
+- The Core golden tests now run in C# too, against the same fixtures as the Swift port.
+
+### Fixed
+- Linux: per-app energy attribution used the SoC remainder instead of the package power as
+  its budget (`GetTopProcesses`).
+
 ## [0.3.0] — 2026-09-04
 
 ### Added

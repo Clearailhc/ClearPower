@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Platform-independent logic, ported 1:1 from daemon/clearpowerd (see macos/Sources/ClearPowerCore). -->
+  <PropertyGroup>
+    <RootNamespace>ClearPower.Core</RootNamespace>
+    <AssemblyName>ClearPower.Core</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>

@@ -141,8 +141,8 @@ class Service:
             import time
             self.last_client_activity = time.monotonic()
             n = params.unpack()[0]
-            soc_w = self.sampler.last.get("soc_w", -1.0)
-            procs = [(nm, float(w), float(c)) for nm, w, c in self.sampler.procs.maybe_sample(soc_w, n)]
+            package_w = self.sampler.last.get("package_w", -1.0)
+            procs = [(nm, float(w), float(c)) for nm, w, c in self.sampler.procs.maybe_sample(package_w, n)]
             invocation.return_value(GLib.Variant("(a(sdd))", (procs,)))
         elif method == "GetHistory":
             field, secs = params.unpack()

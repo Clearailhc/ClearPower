@@ -1,0 +1,27 @@
+<Project>
+  <!-- Shared settings for every project under windows/. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Platforms>x64</Platforms>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <Deterministic>true</Deterministic>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- Version from the repository VERSION file (shared with the Linux and macOS ports). -->
+    <ClearPowerVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../VERSION').Trim())</ClearPowerVersion>
+    <Version>$(ClearPowerVersion)</Version>
+    <AssemblyVersion>$(ClearPowerVersion).0</AssemblyVersion>
+    <FileVersion>$(ClearPowerVersion).0</FileVersion>
+    <Product>ClearPower</Product>
+    <Authors>ClearPower contributors</Authors>
+    <Copyright>Apache-2.0</Copyright>
+    <!-- The repository lives in OneDrive: keep build churn out of the sync folder. -->
+    <BaseIntermediateOutputPath>$(LOCALAPPDATA)\ClearPower-build\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(LOCALAPPDATA)\ClearPower-build\$(MSBuildProjectName)\bin\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

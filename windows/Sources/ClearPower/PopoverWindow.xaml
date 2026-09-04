@@ -1,0 +1,83 @@
+<Window x:Class="ClearPower.App.PopoverWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ClearPower.App"
+        Title="ClearPower" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        SizeToContent="Height" Width="400" UseLayoutRounding="True" SnapsToDevicePixels="True"
+        Background="{DynamicResource BgBrush}" Foreground="{DynamicResource FgBrush}"
+        FontFamily="Segoe UI" FontSize="13" TextOptions.TextFormattingMode="Ideal">
+    <Border Padding="10,8" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1">
+        <StackPanel>
+            <TextBlock x:Name="Offline" Foreground="{DynamicResource WarnBrush}" HorizontalAlignment="Center" Margin="0,6" TextWrapping="Wrap" Visibility="Collapsed" />
+
+            <Border x:Name="ChargeBanner" Background="#33E07A5F" CornerRadius="10" Padding="10,6" Margin="0,0,0,10" Visibility="Collapsed">
+                <TextBlock x:Name="ChargeBannerText" TextWrapping="Wrap" Foreground="{DynamicResource FgBrush}" />
+            </Border>
+
+            <Grid x:Name="Header" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button x:Name="LimitBtn" Grid.Column="0" Style="{StaticResource PillButton}" Click="OnCycleLimit" />
+                <ToggleButton x:Name="DischargeBtn" Grid.Column="2" Style="{StaticResource ToggleChip}" Margin="0,0,8,0" Click="OnToggleDischarge">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="DischargeText" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE738;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton x:Name="TopUpBtn" Grid.Column="3" Style="{StaticResource ToggleChip}" Margin="0,0,8,0" Click="OnToggleTopUp">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock x:Name="TopUpText" VerticalAlignment="Center" />
+                        <TextBlock Text="&#xE710;" FontFamily="Segoe MDL2 Assets" FontSize="13" Margin="6,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </ToggleButton>
+                <Button x:Name="PrefsBtn" Grid.Column="4" Style="{StaticResource IconButton}" Click="OnOpenSettings">
+                    <TextBlock Text="&#xE713;" FontFamily="Segoe MDL2 Assets" FontSize="15" />
+                </Button>
+            </Grid>
+
+            <StackPanel x:Name="BatBox" Margin="0,0,0,10">
+                <local:BatteryBarView x:Name="Bar" />
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="Runtime" Foreground="{DynamicResource DimBrush}" FontSize="12" VerticalAlignment="Center" />
+                    <Button x:Name="WindowBtn" Grid.Column="1" Style="{StaticResource MiniButton}" Click="OnCycleWindow" />
+                </Grid>
+                <TextBlock x:Name="Health" Foreground="{DynamicResource DimBrush}" FontSize="12" Margin="0,4,0,0" />
+            </StackPanel>
+
+            <local:SankeyView x:Name="Sankey" Margin="0,0,0,10" />
+
+            <Grid x:Name="ProfRow" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <ToggleButton x:Name="ProfSaver" Style="{StaticResource ToggleIcon}" Margin="0,0,6,0" Click="OnProfile" Tag="power-saver">
+                        <Path Data="M2,14 C2,6 8,2 14,2 C14,10 8,14 2,14 Z M2,14 L9,7" Stroke="{DynamicResource FgBrush}" StrokeThickness="1.5" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" />
+                    </ToggleButton>
+                    <ToggleButton x:Name="ProfBalanced" Style="{StaticResource ToggleIcon}" Margin="0,0,6,0" Click="OnProfile" Tag="balanced">
+                        <Path Data="M2,12 A6,6 0 0 1 14,12 M8,12 L11.5,7 M2,14 L14,14" Stroke="{DynamicResource FgBrush}" StrokeThickness="1.5" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Width="16" Height="16" />
+                    </ToggleButton>
+                    <ToggleButton x:Name="ProfPerf" Style="{StaticResource ToggleIcon}" Click="OnProfile" Tag="performance">
+                        <Path Data="M9,1 L3,9 L7,9 L6,15 L13,6 L9,6 Z" Fill="{DynamicResource FgBrush}" Width="16" Height="16" />
+                    </ToggleButton>
+                </StackPanel>
+                <TextBlock x:Name="Temps" Grid.Column="2" Foreground="{DynamicResource DimBrush}" FontSize="12" VerticalAlignment="Center" />
+            </Grid>
+
+            <Border x:Name="AppsBox" Background="{DynamicResource BoxBrush}" CornerRadius="14" Padding="12,8">
+                <StackPanel x:Name="Apps" />
+            </Border>
+        </StackPanel>
+    </Border>
+</Window>

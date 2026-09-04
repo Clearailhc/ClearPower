@@ -4,7 +4,7 @@
 <h1 align="center">ClearPower</h1>
 <p align="center">
   Battery charge control and an honest, live power-flow view for laptops.<br>
-  <em>Linux (GNOME Shell 48–50) and macOS (Apple Silicon). Inspired by AlDente.</em>
+  <em>Linux (GNOME Shell 48–50), macOS (Apple Silicon) and Windows 11 (x64). Inspired by AlDente.</em>
 </p>
 <p align="center">
   <a href="https://github.com/Clearailhc/ClearPower/releases">Releases</a> ·
@@ -26,6 +26,8 @@
 - English and Chinese UI, switchable in settings.
 
 ## Install
+
+**Windows 11 (x64)** — download `ClearPower-Setup-<version>-x64.exe` (per-user installer, no admin needed) or the portable zip from [Releases](https://github.com/Clearailhc/ClearPower/releases); details in [`windows/README.md`](windows/README.md). Charge control needs a ThinkPad with the Lenovo Power Manager driver.
 
 **macOS (Apple Silicon)** — download `ClearPower-<version>-arm64.dmg` from [Releases](https://github.com/Clearailhc/ClearPower/releases); first-launch and helper steps are in [`macos/README.md`](macos/README.md).
 
@@ -109,12 +111,14 @@ daemon/data/              D-Bus introspection XML — the frontend/backend contr
 extension/clearpower@lhc  GNOME Shell frontend (ESM): indicator, popover, Sankey, prefs, i18n
 macos/                    macOS port: Swift package (core logic, IOKit/SMC/IOReport backend,
                           privileged helper, SwiftUI menu bar app), build + DMG scripts
+windows/                  Windows port: C#/WPF tray app (core logic, Energy Meter / battery IOCTL /
+                          Lenovo Power Manager backend), Inno Setup installer, build script
 bin/clearpower            launcher / status CLI
 icons/                    app icon and symbolic top-bar icon
 packaging/                systemd unit, D-Bus policy, polkit action, desktop entries, deb scripts
 ```
 
-Other platforms can reuse everything above the backend: a frontend only needs a backend that produces the same `Snapshot` dictionary. The macOS port keeps the key names and sentinels and is checked against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`).
+Other platforms can reuse everything above the backend: a frontend only needs a backend that produces the same `Snapshot` dictionary. The macOS and Windows ports keep the key names and sentinels and are checked against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`; the fixtures are shared by both).
 
 ## Development
 
@@ -135,7 +139,7 @@ with `/tmp/cp-cfg/glib-2.0/settings/keyfile` containing `[org/gnome/shell]` / `e
 
 ## Roadmap
 
-- **Windows** (next): a tray app with the same popover, backed by Windows battery/power APIs and the same `Snapshot` contract.
+- Windows: charge thresholds on vendors other than Lenovo (ASUS / Dell / HP interfaces), temperatures via a signed sensor driver, code signing.
 - macOS: Developer ID signing + notarization once a certificate is available (the DMG is ad-hoc signed today); SMAppService instead of the admin-prompt helper install.
 - AMD RAPL and more vendors' charge-threshold interfaces on Linux.
 

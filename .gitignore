@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 extension/*/schemas/gschemas.compiled
 dist/
+
+# Windows port build outputs
+windows/**/bin/
+windows/**/obj/
+windows/dist/

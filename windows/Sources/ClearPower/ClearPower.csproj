@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The tray application (WPF). The Core and WinBackend sources are compiled straight into
+       this assembly so the shipped program is a single ClearPower.exe; the library projects
+       remain for the unit tests. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ClearPower.App</RootNamespace>
+    <AssemblyName>ClearPower</AssemblyName>
+    <StartupObject>ClearPower.App.Program</StartupObject>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources/ClearPower.ico</ApplicationIcon>
+    <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System.Management" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="*.cs" />
+    <Compile Include="..\ClearPowerCore\*.cs" Link="Core\%(Filename)%(Extension)" />
+    <Compile Include="..\WinBackend\*.cs" Link="Win\%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\WinBackend\Resources\*.bin" Link="Resources\%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>
