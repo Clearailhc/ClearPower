@@ -17,7 +17,9 @@ struct BatteryBarView: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let w = size.width, h = size.height, r = h / 2
+            // Double throughout: the geometry helpers below take Double, and mixing it with
+            // the CGFloat that Canvas hands back makes the arithmetic ambiguous.
+            let w = Double(size.width), h = Double(size.height), r = h / 2
             let fg = Color(nsColor: .labelColor)
             ctx.fill(roundRectPath(0, 0, w, h, r), with: .color(Color(white: 0.5, opacity: 0.18)))
 
@@ -39,7 +41,7 @@ struct BatteryBarView: View {
             func paint(_ text: String, x: Double, y: Double) {
                 let t = ctx.resolve(Text(text).font(.system(size: 13, weight: .bold)))
                 let sz = t.measure(in: CGSize(width: 1000, height: 100))
-                if x + sz.width <= fillW - 6 {
+                if x + Double(sz.width) <= fillW - 6 {
                     var shadow = ctx; shadow.opacity = 0.22
                     shadow.draw(ctx.resolve(Text(text).font(.system(size: 13, weight: .bold)).foregroundColor(.black)), at: CGPoint(x: x + 1, y: y + 1), anchor: .topLeading)
                     ctx.draw(ctx.resolve(Text(text).font(.system(size: 13, weight: .bold)).foregroundColor(.white.opacity(0.95))), at: CGPoint(x: x, y: y), anchor: .topLeading)
@@ -49,9 +51,9 @@ struct BatteryBarView: View {
             }
             let pctText = "\(pct)%"
             let ps = ctx.resolve(Text(pctText).font(.system(size: 13, weight: .bold))).measure(in: CGSize(width: 1000, height: 100))
-            paint(pctText, x: 12, y: (h - ps.height) / 2)
+            paint(pctText, x: 12, y: (h - Double(ps.height)) / 2)
             let gs = ctx.resolve(Text(glyph).font(.system(size: 13, weight: .bold))).measure(in: CGSize(width: 1000, height: 100))
-            paint(glyph, x: (w - gs.width) / 2, y: (h - gs.height) / 2)
+            paint(glyph, x: (w - Double(gs.width)) / 2, y: (h - Double(gs.height)) / 2)
         }
         .frame(height: 28)
     }

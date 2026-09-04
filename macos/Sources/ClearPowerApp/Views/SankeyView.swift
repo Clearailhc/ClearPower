@@ -126,13 +126,16 @@ struct SankeyView: View {
             let glyphId = n.id == "batchg" ? "battery" : n.id
             let GLYPH_H = 18.0
             let cx = n.x + n.wPx / 2
-            if n.h >= GLYPH_H + ns.height + ws.height + 6 {
-                let top = n.y + (n.h - GLYPH_H - ns.height - ws.height - 1) / 2
+            // The node geometry is Double; measure() returns CGFloat. Convert once, so the
+            // layout arithmetic below stays unambiguous (and cheap to type-check).
+            let nsH = Double(ns.height), wsH = Double(ws.height)
+            if n.h >= GLYPH_H + nsH + wsH + 6 {
+                let top = n.y + (n.h - GLYPH_H - nsH - wsH - 1) / 2
                 Glyphs.draw(ctx, glyphId, cx: cx, cy: top + GLYPH_H / 2, color: n.color.color())
                 ctx.draw(name, at: CGPoint(x: cx, y: top + GLYPH_H), anchor: .top)
-                ctx.draw(watts, at: CGPoint(x: cx, y: top + GLYPH_H + ns.height - 1), anchor: .top)
-            } else if n.h >= GLYPH_H + ws.height + 6 {
-                let top = n.y + (n.h - GLYPH_H - ws.height - 2) / 2
+                ctx.draw(watts, at: CGPoint(x: cx, y: top + GLYPH_H + nsH - 1), anchor: .top)
+            } else if n.h >= GLYPH_H + wsH + 6 {
+                let top = n.y + (n.h - GLYPH_H - wsH - 2) / 2
                 Glyphs.draw(ctx, glyphId, cx: cx, cy: top + GLYPH_H / 2, color: n.color.color())
                 ctx.draw(watts, at: CGPoint(x: cx, y: top + GLYPH_H + 2), anchor: .top)
             } else {
