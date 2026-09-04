@@ -128,7 +128,10 @@ class Sampler:
                 display_w = 0.0 if not bl["display_on"] else min(e, rest_w)
                 other_w = rest_w - display_w
 
-        adapter_w = (sys_w + max(bat_w, 0.0)) if (on_ac and sys_w > 0) else 0.0
+        # Adapter supplies the machine (minus whatever the battery is contributing when the
+        # adapter is too weak) plus the charge current. Battery draw on AC => two sources.
+        adapter_w = (sys_w - max(-bat_w, 0.0) + max(bat_w, 0.0)) if (on_ac and sys_w > 0) else 0.0
+        adapter_w = max(adapter_w, 0.0)
         snap.update({
             "sys_w": sys_w, "sys_source": sys_source,
             "psys_w": psys, "package_w": package,
