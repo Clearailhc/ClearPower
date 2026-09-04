@@ -1,0 +1,325 @@
+[
+ {
+  "args": {},
+  "op": "startup",
+  "state": {
+   "charge_limit": 100,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "start",
+    95
+   ],
+   [
+    "end",
+    100
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 80
+  },
+  "op": "set_limit",
+  "state": {
+   "charge_limit": 80,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "start",
+    75
+   ],
+   [
+    "end",
+    80
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 120
+  },
+  "op": "set_limit",
+  "state": {
+   "charge_limit": 100,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "end",
+    100
+   ],
+   [
+    "start",
+    95
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 30
+  },
+  "op": "set_limit",
+  "state": {
+   "charge_limit": 50,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "start",
+    45
+   ],
+   [
+    "end",
+    50
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 90
+  },
+  "op": "set_limit",
+  "state": {
+   "charge_limit": 90,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "end",
+    90
+   ],
+   [
+    "start",
+    85
+   ]
+  ]
+ },
+ {
+  "args": {},
+  "op": "start_topup",
+  "state": {
+   "charge_limit": 90,
+   "charge_mode": "topup",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "end",
+    100
+   ],
+   [
+    "start",
+    95
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 97,
+   "status": "Charging"
+  },
+  "op": "tick",
+  "state": {
+   "charge_limit": 90,
+   "charge_mode": "topup",
+   "charge_target": 0
+  },
+  "writes": []
+ },
+ {
+  "args": {
+   "pct": 100,
+   "status": "Full"
+  },
+  "op": "tick",
+  "state": {
+   "charge_limit": 90,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "start",
+    85
+   ],
+   [
+    "end",
+    90
+   ]
+  ]
+ },
+ {
+  "args": {
+   "target": 0
+  },
+  "op": "start_discharge",
+  "state": {
+   "charge_limit": 90,
+   "charge_mode": "discharge",
+   "charge_target": 90
+  },
+  "writes": [
+   [
+    "beh",
+    "force-discharge"
+   ]
+  ]
+ },
+ {
+  "args": {
+   "pct": 95
+  },
+  "op": "set_limit",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "discharge",
+   "charge_target": 95
+  },
+  "writes": []
+ },
+ {
+  "args": {
+   "pct": 96,
+   "status": "Discharging"
+  },
+  "op": "tick",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "discharge",
+   "charge_target": 95
+  },
+  "writes": []
+ },
+ {
+  "args": {
+   "pct": 95,
+   "status": "Discharging"
+  },
+  "op": "tick",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "end",
+    95
+   ],
+   [
+    "start",
+    90
+   ]
+  ]
+ },
+ {
+  "args": {
+   "target": 10
+  },
+  "op": "start_discharge",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "discharge",
+   "charge_target": 20
+  },
+  "writes": [
+   [
+    "beh",
+    "force-discharge"
+   ]
+  ]
+ },
+ {
+  "args": {},
+  "op": "cancel",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "limit",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "start",
+    90
+   ],
+   [
+    "end",
+    95
+   ]
+  ]
+ },
+ {
+  "args": {},
+  "op": "start_topup",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "topup",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "end",
+    100
+   ],
+   [
+    "start",
+    95
+   ]
+  ]
+ },
+ {
+  "args": {},
+  "op": "shutdown",
+  "state": {
+   "charge_limit": 95,
+   "charge_mode": "topup",
+   "charge_target": 0
+  },
+  "writes": [
+   [
+    "beh",
+    "auto"
+   ],
+   [
+    "start",
+    90
+   ],
+   [
+    "end",
+    95
+   ]
+  ]
+ }
+]

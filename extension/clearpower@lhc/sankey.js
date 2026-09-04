@@ -1,9 +1,12 @@
 import Cairo from 'gi://cairo';
+import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Pango from 'gi://Pango';
 import PangoCairo from 'gi://PangoCairo';
 import St from 'gi://St';
+
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {roundRect} from './batteryBar.js';
 import {t} from './i18n.js';
@@ -26,7 +29,7 @@ const FPS = 15;            // upper bound while the popover is open
 const LERP = 0.18;         // per-frame easing towards the latest sample
 const SHEEN_SPEED = 0.28;  // band sheen cycles per second
 const MIN_SINK_W = 0.1;    // sinks below this are folded into "other" and hidden
-const NODE_H = 46, GAP = 10, PAD = 6;
+const NODE_H = 50, GAP = 10, PAD = 6;
 
 // Right-hand sinks in display order. `key` is the snapshot field.
 const SINKS = [
@@ -46,10 +49,32 @@ export function fmtW(w, digits = null) {
     return `${w.toFixed(d)} W`;
 }
 
+/** i18n key of the tooltip description for a node. */
+function tipKey(n) {
+    switch (n.id) {
+    case 'adapter': return 'tipAdapter';
+    case 'battery': return 'tipBattery';
+    case 'batchg': return 'tipBatchg';
+    case 'pc': return 'tipSystem';
+    case 'cpu': return 'tipCpu';
+    case 'gpu': return 'tipGpu';
+    case 'soc': return 'tipSoc';
+    case 'mem': return 'tipMemory';
+    case 'disp': return 'tipDisplay';
+    case 'other': return n.labelKey === 'displayOther' ? 'tipDisplayOther' : 'tipOther';
+    default: return n.labelKey === 'system' ? 'tipSystem' : 'tipOther';
+    }
+}
+
 export const Sankey = GObject.registerClass(
 class Sankey extends St.DrawingArea {
     _init() {
-        super._init({x_expand: true, height: 3 * NODE_H + 2 * GAP + 2 * PAD});
+        super._init({x_expand: true, reactive: true, track_hover: true, height: 3 * NODE_H + 2 * GAP + 2 * PAD});
+        this._hover = null;    // id of the node under the pointer
+        this._tip = null;      // floating St.Label
+        this._lastModel = null;
+        this.connect('motion-event', (_a, e) => this._onMotion(e));
+        this.connect('leave-event', () => this._setHover(null));
         this._target = null;   // latest snapshot
         this._shown = null;    // eased values actually drawn
         this._phase = 0;
@@ -59,7 +84,10 @@ class Sankey extends St.DrawingArea {
         this._cache = null;    // {key, surface, scale}: node cards + text, re-rendered only when values change
         this._flowMode = 'on-ac';  // always | on-ac | never (user preference)
         this.connect('repaint', () => this._draw());
-        this.connect('destroy', () => this._stopTimer());
+        this.connect('destroy', () => {
+            this._stopTimer();
+            this._setHover(null);
+        });
     }
 
     /** New data from the daemon. Eases in while visible, snaps otherwise. */
@@ -160,6 +188,58 @@ class Sankey extends St.DrawingArea {
         return GLib.SOURCE_CONTINUE;
     }
 
+    // ---- hover tooltip: name · watts + what the node contains ------------------
+    _onMotion(event) {
+        const m = this._lastModel;
+        if (!m)
+            return Clutter.EVENT_PROPAGATE;
+        const [px, py] = event.get_coords();
+        const [ox, oy] = this.get_transformed_position();
+        const x = px - ox, y = py - oy;
+        let hit = null;
+        for (const n of Object.values(m.nodes)) {
+            if (x >= n.x && x <= n.x + n.w_px && y >= n.y && y <= n.y + n.h) {
+                hit = n.id;
+                break;
+            }
+        }
+        this._setHover(hit);
+        return Clutter.EVENT_PROPAGATE;
+    }
+
+    _setHover(id) {
+        if (id === this._hover)
+            return;
+        this._hover = id;
+        this._cache = null;
+        this.queue_repaint();
+        if (!id) {
+            this._tip?.destroy();
+            this._tip = null;
+            return;
+        }
+        const n = this._lastModel?.nodes[id];
+        if (!n)
+            return;
+        if (!this._tip) {
+            this._tip = new St.Label({style_class: 'clearpower-tooltip'});
+            this._tip.clutter_text.line_wrap = true;
+            Main.layoutManager.addTopChrome(this._tip);
+        }
+        this._tip.text = `${n.label} · ${(n.approx ? '≈' : '') + fmtW(n.w)}\n${t(tipKey(n))}`;
+        const [ox, oy] = this.get_transformed_position();
+        const tw = 240;
+        this._tip.set_width(tw);
+        const [, th] = this._tip.get_preferred_height(tw);
+        const monitor = Main.layoutManager.findMonitorForActor(this);
+        let tx = ox + n.x + n.w_px / 2 - tw / 2;
+        if (monitor)
+            tx = Math.max(monitor.x + 4, Math.min(tx, monitor.x + monitor.width - tw - 4));
+        const above = n.y > th + 8;
+        const ty = above ? oy + n.y - th - 6 : oy + n.y + n.h + 6;
+        this._tip.set_position(Math.round(tx), Math.round(ty));
+    }
+
     /** Which sinks are visible is decided on the *target* values so bands never flicker. */
     _visibleSinks() {
         const tg = this._target;
@@ -193,8 +273,8 @@ class Sankey extends St.DrawingArea {
         const cols = [[], [], []];
         const nodes = {};
         const flows = [];
-        const add = (col, id, label, w, color) => {
-            const n = {id, label, w, color, inTot: 0, outTot: 0, inOff: 0, outOff: 0};
+        const add = (col, id, label, w, color, labelKey = id) => {
+            const n = {id, label, labelKey, w, color, inTot: 0, outTot: 0, inOff: 0, outOff: 0};
             nodes[id] = n;
             cols[col].push(n);
             return n;
@@ -235,7 +315,7 @@ class Sankey extends St.DrawingArea {
         const sum = vals.reduce((a, b) => a + b, 0);
         const k = sum > 0.01 && sysW > 0 ? sysW / sum : 1;
         vis.forEach((v, i) => {
-            const n = add(2, v.id, t(v.label), vals[i] * k, v.color);
+            const n = add(2, v.id, t(v.label), vals[i] * k, v.color, v.label);
             n.approx = !!v.approx;
             flow('pc', v.id, vals[i] * k);
         });
@@ -306,6 +386,7 @@ class Sankey extends St.DrawingArea {
         }
         const m = this._model(s);
         const scale = this._layout(m, W, H);
+        this._lastModel = m;
 
         // Bands. Seam-free recipe: (1) clip away the node cards so bands slide under their
         // rounded outlines, (2) paint every band opaque into one group with a hair of overlap,
@@ -362,7 +443,7 @@ class Sankey extends St.DrawingArea {
     _paintNodeLayer(cr, m, W, H, node, fg) {
         const scale = this.get_resource_scale?.() || 1;
         const key = Object.values(m.nodes).map(n => `${n.id}:${n.label}:${n.x}:${n.y}:${Math.round(n.h)}:${n.w.toFixed(1)}`).join('|') +
-            `@${W}x${H}x${scale}:${fg.to_string()}`;
+            `@${W}x${H}x${scale}:${fg.to_string()}:${this._hover ?? ''}`;
         if (!this._cache || this._cache.key !== key) {
             const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, Math.ceil(W * scale), Math.ceil(H * scale));
             const c2 = new Cairo.Context(surface);
@@ -379,15 +460,18 @@ class Sankey extends St.DrawingArea {
     }
 
     _drawNodes(cr, m, node, fg) {
-        // Nodes: translucent card, glyph on top, bold watts below (label text only when there is no glyph).
+        // Nodes: translucent card (brighter under the pointer), glyph, small name, bold watts.
+        // The name, then the glyph, are dropped when the card is too short.
         const font = node.get_font();
         const bold = font.copy();
         bold.set_weight(Pango.Weight.BOLD);
+        const small = font.copy();
+        small.set_size(Math.round(font.get_size() * 0.78));
         const layout = PangoCairo.create_layout(cr);
         layout.set_ellipsize(Pango.EllipsizeMode.END);
         for (const n of Object.values(m.nodes)) {
             roundRect(cr, n.x, n.y, n.w_px, n.h, 12);
-            cr.setSourceRGBA(...n.color, 0.18);
+            cr.setSourceRGBA(...n.color, this._hover === n.id ? 0.30 : 0.18);
             cr.fillPreserve();
             cr.setSourceRGBA(...n.color, 0.55);
             cr.setLineWidth(1);
@@ -396,19 +480,36 @@ class Sankey extends St.DrawingArea {
             layout.set_font_description(bold);
             layout.set_text((n.approx ? '≈' : '') + fmtW(n.w), -1);
             const [bw, bh] = layout.get_pixel_size();
+            layout.set_font_description(small);
+            layout.set_text(n.label, -1);
+            const [nw, nh] = layout.get_pixel_size();
             const glyphId = n.id === 'batchg' ? 'battery' : n.id;
             const GLYPH_H = 18;
-            if (n.h >= GLYPH_H + bh + 6) {
+            const cx = n.x + n.w_px / 2;
+            const showWatts = (y) => {
+                layout.set_font_description(bold);
+                layout.set_text((n.approx ? '≈' : '') + fmtW(n.w), -1);
+                cr.setSourceColor(fg);
+                cr.moveTo(cx - bw / 2, y);
+                PangoCairo.show_layout(cr, layout);
+            };
+            if (n.h >= GLYPH_H + nh + bh + 6) {
+                const top = n.y + (n.h - GLYPH_H - nh - bh - 1) / 2;
+                cr.setSourceRGBA(...n.color, 1);
+                drawGlyph(cr, glyphId, cx, top + GLYPH_H / 2);
+                layout.set_font_description(small);
+                layout.set_text(n.label, -1);
+                cr.setSourceRGBA(fg.red / 255, fg.green / 255, fg.blue / 255, 0.75);
+                cr.moveTo(cx - nw / 2, top + GLYPH_H);
+                PangoCairo.show_layout(cr, layout);
+                showWatts(top + GLYPH_H + nh - 1);
+            } else if (n.h >= GLYPH_H + bh + 6) {
                 const top = n.y + (n.h - GLYPH_H - bh - 2) / 2;
                 cr.setSourceRGBA(...n.color, 1);
-                drawGlyph(cr, glyphId, n.x + n.w_px / 2, top + GLYPH_H / 2);
-                cr.setSourceColor(fg);
-                cr.moveTo(n.x + (n.w_px - bw) / 2, top + GLYPH_H + 2);
-                PangoCairo.show_layout(cr, layout);
+                drawGlyph(cr, glyphId, cx, top + GLYPH_H / 2);
+                showWatts(top + GLYPH_H + 2);
             } else {
-                cr.setSourceColor(fg);
-                cr.moveTo(n.x + (n.w_px - bw) / 2, n.y + (n.h - bh) / 2);
-                PangoCairo.show_layout(cr, layout);
+                showWatts(n.y + (n.h - bh) / 2);
             }
         }
     }

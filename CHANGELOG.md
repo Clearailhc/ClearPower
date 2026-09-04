@@ -2,6 +2,23 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.3.0] — 2026-09-04
+
+### Added
+- **macOS (Apple Silicon)**: native menu bar app with the same popover, in `macos/`. Sampling
+  runs unprivileged (IOKit battery, IOReport per-block energy counters, SMC temperatures /
+  fans / platform power, DisplayServices brightness); a small root helper owns charge control
+  through the SMC (`CHTE`/`CHIE`, `CH0B`/`CH0C`/`CH0I`, or firmware `bfF0` limits) with
+  hysteresis, Top Up, Discharge, sleep handling and restore-on-exit. Distributed as an
+  ad-hoc-signed DMG (`scripts/build-app.sh`, `scripts/make-dmg.sh`).
+- Golden tests: the Python daemon generates fixtures (`macos/scripts/gen-fixtures.py`) that the
+  Swift port must reproduce value for value.
+
+### Fixed
+- `bat_w` was zeroed while discharging: the signed battery power went through the `-1 =
+  unknown` sentinel path of the smoother, so the system total never used the battery's own
+  reading and the battery never appeared as a second source next to a weak adapter.
+
 ## [0.2.0] — 2026-09-04
 
 ### Added

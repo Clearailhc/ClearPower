@@ -1,0 +1,946 @@
+[
+ {
+  "energy_wh": 59.96666666666667,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.83333333333337,
+   "runtime_min_30": 299.83333333333337,
+   "runtime_min_60": 299.83333333333337
+  },
+  "status": "Discharging",
+  "t": 10.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.93333333333334,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.6666666666667,
+   "runtime_min_30": 299.6666666666667,
+   "runtime_min_60": 299.6666666666667
+  },
+  "status": "Discharging",
+  "t": 20.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.900000000000006,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.5,
+   "runtime_min_30": 299.5,
+   "runtime_min_60": 299.5
+  },
+  "status": "Discharging",
+  "t": 30.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.866666666666674,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.33333333333337,
+   "runtime_min_30": 299.33333333333337,
+   "runtime_min_60": 299.33333333333337
+  },
+  "status": "Discharging",
+  "t": 40.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.83333333333334,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.1666666666667,
+   "runtime_min_30": 299.1666666666667,
+   "runtime_min_60": 299.1666666666667
+  },
+  "status": "Discharging",
+  "t": 50.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.80000000000001,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 299.00000000000006,
+   "runtime_min_30": 299.00000000000006,
+   "runtime_min_60": 299.00000000000006
+  },
+  "status": "Discharging",
+  "t": 60.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.76666666666668,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 60,
+   "runtime_min_10": 298.83333333335037,
+   "runtime_min_30": 298.83333333335037,
+   "runtime_min_60": 298.83333333335037
+  },
+  "status": "Discharging",
+  "t": 70.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.53333333333336,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 130,
+   "runtime_min_10": 297.66666666668374,
+   "runtime_min_30": 297.66666666668374,
+   "runtime_min_60": 297.66666666668374
+  },
+  "status": "Discharging",
+  "t": 140.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.30000000000004,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 200,
+   "runtime_min_10": 296.50000000001705,
+   "runtime_min_30": 296.50000000001705,
+   "runtime_min_60": 296.50000000001705
+  },
+  "status": "Discharging",
+  "t": 210.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.06666666666672,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 270,
+   "runtime_min_10": 295.3333333333504,
+   "runtime_min_30": 295.3333333333504,
+   "runtime_min_60": 295.3333333333504
+  },
+  "status": "Discharging",
+  "t": 280.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.8333333333334,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 340,
+   "runtime_min_10": 294.16666666668374,
+   "runtime_min_30": 294.16666666668374,
+   "runtime_min_60": 294.16666666668374
+  },
+  "status": "Discharging",
+  "t": 350.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.60000000000008,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 410,
+   "runtime_min_10": 293.00000000001705,
+   "runtime_min_30": 293.00000000001705,
+   "runtime_min_60": 293.00000000001705
+  },
+  "status": "Discharging",
+  "t": 420.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.36666666666676,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 480,
+   "runtime_min_10": 291.83333333335037,
+   "runtime_min_30": 291.83333333335037,
+   "runtime_min_60": 291.83333333335037
+  },
+  "status": "Discharging",
+  "t": 490.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.13333333333344,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 550,
+   "runtime_min_10": 290.6666666666837,
+   "runtime_min_30": 290.6666666666837,
+   "runtime_min_60": 290.6666666666837
+  },
+  "status": "Discharging",
+  "t": 560.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.90000000000012,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 620,
+   "runtime_min_10": 289.50000000001705,
+   "runtime_min_30": 289.50000000001705,
+   "runtime_min_60": 289.50000000001705
+  },
+  "status": "Discharging",
+  "t": 630.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.6666666666668,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 690,
+   "runtime_min_10": 288.33333333335037,
+   "runtime_min_30": 288.33333333335037,
+   "runtime_min_60": 288.33333333335037
+  },
+  "status": "Discharging",
+  "t": 700.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.43333333333348,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 760,
+   "runtime_min_10": 287.16666666668374,
+   "runtime_min_30": 287.16666666668374,
+   "runtime_min_60": 287.16666666668374
+  },
+  "status": "Discharging",
+  "t": 770.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.20000000000016,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 830,
+   "runtime_min_10": 286.00000000001705,
+   "runtime_min_30": 286.00000000001705,
+   "runtime_min_60": 286.00000000001705
+  },
+  "status": "Discharging",
+  "t": 840.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.96666666666684,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 900,
+   "runtime_min_10": 284.83333333335037,
+   "runtime_min_30": 284.83333333335037,
+   "runtime_min_60": 284.83333333335037
+  },
+  "status": "Discharging",
+  "t": 910.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.73333333333352,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 970,
+   "runtime_min_10": 283.66666666668374,
+   "runtime_min_30": 283.66666666668374,
+   "runtime_min_60": 283.66666666668374
+  },
+  "status": "Discharging",
+  "t": 980.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.5000000000002,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1040,
+   "runtime_min_10": 282.50000000001705,
+   "runtime_min_30": 282.50000000001705,
+   "runtime_min_60": 282.50000000001705
+  },
+  "status": "Discharging",
+  "t": 1050.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.26666666666688,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1110,
+   "runtime_min_10": 281.3333333333504,
+   "runtime_min_30": 281.3333333333504,
+   "runtime_min_60": 281.3333333333504
+  },
+  "status": "Discharging",
+  "t": 1120.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.03333333333356,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1180,
+   "runtime_min_10": 280.1666666666837,
+   "runtime_min_30": 280.1666666666837,
+   "runtime_min_60": 280.1666666666837
+  },
+  "status": "Discharging",
+  "t": 1190.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.80000000000024,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1250,
+   "runtime_min_10": 279.00000000001705,
+   "runtime_min_30": 279.00000000001705,
+   "runtime_min_60": 279.00000000001705
+  },
+  "status": "Discharging",
+  "t": 1260.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.56666666666692,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1320,
+   "runtime_min_10": 277.83333333335037,
+   "runtime_min_30": 277.83333333335037,
+   "runtime_min_60": 277.83333333335037
+  },
+  "status": "Discharging",
+  "t": 1330.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.3333333333336,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1390,
+   "runtime_min_10": 276.6666666666837,
+   "runtime_min_30": 276.6666666666837,
+   "runtime_min_60": 276.6666666666837
+  },
+  "status": "Discharging",
+  "t": 1400.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.10000000000028,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1460,
+   "runtime_min_10": 275.50000000001705,
+   "runtime_min_30": 275.50000000001705,
+   "runtime_min_60": 275.50000000001705
+  },
+  "status": "Discharging",
+  "t": 1470.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.86666666666696,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1530,
+   "runtime_min_10": 274.33333333335037,
+   "runtime_min_30": 274.33333333335037,
+   "runtime_min_60": 274.33333333335037
+  },
+  "status": "Discharging",
+  "t": 1540.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.63333333333364,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1600,
+   "runtime_min_10": 273.16666666668374,
+   "runtime_min_30": 273.16666666668374,
+   "runtime_min_60": 273.16666666668374
+  },
+  "status": "Discharging",
+  "t": 1610.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.40000000000032,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1670,
+   "runtime_min_10": 272.00000000001705,
+   "runtime_min_30": 272.00000000001705,
+   "runtime_min_60": 272.00000000001705
+  },
+  "status": "Discharging",
+  "t": 1680.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.166666666667,
+  "fallback_w": 12.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 1740,
+   "runtime_min_10": 270.8333333333504,
+   "runtime_min_30": 270.8333333333504,
+   "runtime_min_60": 270.8333333333504
+  },
+  "status": "Discharging",
+  "t": 1750.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.16666666666701,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 24.866666666665964,
+   "eta_min_30": 24.866666666665964,
+   "eta_min_60": 24.866666666665964,
+   "runtime_basis_s": 0,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 1820.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 54.75000000000036,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 23.69999999999859,
+   "eta_min_30": 23.69999999999859,
+   "eta_min_60": 23.69999999999859,
+   "runtime_basis_s": 80,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 1890.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.33333333333371,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 22.53333333333192,
+   "eta_min_30": 22.53333333333192,
+   "eta_min_60": 22.53333333333192,
+   "runtime_basis_s": 150,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 1960.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 55.91666666666706,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 21.366666666665253,
+   "eta_min_30": 21.366666666665253,
+   "eta_min_60": 21.366666666665253,
+   "runtime_basis_s": 220,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2030.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 56.50000000000041,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 20.19999999999859,
+   "eta_min_30": 20.19999999999859,
+   "eta_min_60": 20.19999999999859,
+   "runtime_basis_s": 290,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2100.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.08333333333376,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 19.03333333333192,
+   "eta_min_30": 19.03333333333192,
+   "eta_min_60": 19.03333333333192,
+   "runtime_basis_s": 360,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2170.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 57.66666666666711,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 17.866666666665257,
+   "eta_min_30": 17.866666666665257,
+   "eta_min_60": 17.866666666665257,
+   "runtime_basis_s": 430,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2240.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.25000000000046,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 16.69999999999859,
+   "eta_min_30": 16.69999999999859,
+   "eta_min_60": 16.69999999999859,
+   "runtime_basis_s": 500,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2310.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 58.83333333333381,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 15.533333333331921,
+   "eta_min_30": 15.533333333331921,
+   "eta_min_60": 15.533333333331921,
+   "runtime_basis_s": 570,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2380.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 59.41666666666716,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 14.366666666665255,
+   "eta_min_30": 14.366666666665255,
+   "eta_min_60": 14.366666666665255,
+   "runtime_basis_s": 640,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2450.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 60.00000000000051,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 13.199999999998589,
+   "eta_min_30": 13.199999999998589,
+   "eta_min_60": 13.199999999998589,
+   "runtime_basis_s": 710,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2520.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 60.58333333333386,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 12.033333333331923,
+   "eta_min_30": 12.033333333331923,
+   "eta_min_60": 12.033333333331923,
+   "runtime_basis_s": 780,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2590.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 61.16666666666721,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 10.866666666665257,
+   "eta_min_30": 10.866666666665257,
+   "eta_min_60": 10.866666666665257,
+   "runtime_basis_s": 850,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2660.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 61.75000000000056,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 9.699999999998589,
+   "eta_min_30": 9.699999999998589,
+   "eta_min_60": 9.699999999998589,
+   "runtime_basis_s": 920,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2730.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 62.33333333333391,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 8.533333333331923,
+   "eta_min_30": 8.533333333331923,
+   "eta_min_60": 8.533333333331923,
+   "runtime_basis_s": 990,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2800.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 62.91666666666726,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 7.366666666665256,
+   "eta_min_30": 7.366666666665256,
+   "eta_min_60": 7.366666666665256,
+   "runtime_basis_s": 1060,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2870.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.50000000000061,
+  "fallback_w": 30.0,
+  "out": {
+   "eta_min_10": 6.19999999999859,
+   "eta_min_30": 6.19999999999859,
+   "eta_min_60": 6.19999999999859,
+   "runtime_basis_s": 1130,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Charging",
+  "t": 2940.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 64.00000000000063,
+  "fallback_w": 0.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Not charging",
+  "t": 3010.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 64.00000000000063,
+  "fallback_w": 0.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": -1.0,
+   "runtime_min_30": -1.0,
+   "runtime_min_60": -1.0
+  },
+  "status": "Not charging",
+  "t": 3080.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.93333333333395,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 0,
+   "runtime_min_10": 479.5000000000046,
+   "runtime_min_30": 479.5000000000046,
+   "runtime_min_60": 479.5000000000046
+  },
+  "status": "Discharging",
+  "t": 3150.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.77777777777837,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 90,
+   "runtime_min_10": 478.333333333263,
+   "runtime_min_30": 478.333333333263,
+   "runtime_min_60": 478.333333333263
+  },
+  "status": "Discharging",
+  "t": 3220.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.62222222222279,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 160,
+   "runtime_min_10": 477.1666666665963,
+   "runtime_min_30": 477.1666666665963,
+   "runtime_min_60": 477.1666666665963
+  },
+  "status": "Discharging",
+  "t": 3290.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.46666666666721,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 230,
+   "runtime_min_10": 475.9999999999297,
+   "runtime_min_30": 475.9999999999297,
+   "runtime_min_60": 475.9999999999297
+  },
+  "status": "Discharging",
+  "t": 3360.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.31111111111163,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 300,
+   "runtime_min_10": 474.833333333263,
+   "runtime_min_30": 474.833333333263,
+   "runtime_min_60": 474.833333333263
+  },
+  "status": "Discharging",
+  "t": 3430.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.15555555555605,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 370,
+   "runtime_min_10": 473.66666666659637,
+   "runtime_min_30": 473.66666666659637,
+   "runtime_min_60": 473.66666666659637
+  },
+  "status": "Discharging",
+  "t": 3500.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 63.00000000000047,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 440,
+   "runtime_min_10": 472.4999999999296,
+   "runtime_min_30": 472.4999999999296,
+   "runtime_min_60": 472.4999999999296
+  },
+  "status": "Discharging",
+  "t": 3570.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 62.84444444444489,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 510,
+   "runtime_min_10": 471.33333333326294,
+   "runtime_min_30": 471.33333333326294,
+   "runtime_min_60": 471.33333333326294
+  },
+  "status": "Discharging",
+  "t": 3640.0,
+  "target_wh": 66.6
+ },
+ {
+  "energy_wh": 62.68888888888931,
+  "fallback_w": 8.0,
+  "out": {
+   "eta_min_10": -1.0,
+   "eta_min_30": -1.0,
+   "eta_min_60": -1.0,
+   "runtime_basis_s": 580,
+   "runtime_min_10": 470.1666666665963,
+   "runtime_min_30": 470.1666666665963,
+   "runtime_min_60": 470.1666666665963
+  },
+  "status": "Discharging",
+  "t": 3710.0,
+  "target_wh": 66.6
+ }
+]

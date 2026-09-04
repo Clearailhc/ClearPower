@@ -57,26 +57,31 @@ export const GLYPHS = {
             cr.rectangle(cx + dx, cy + dy, 3, 3);
         cr.fill();
     },
-    gpu(cr, cx, cy) {                   // card with a fan
-        rr(cr, cx - 7.5, cy - 4.5, 15, 9, 1.8);
+    gpu(cr, cx, cy) {                   // chip with a triangle (graphics)
+        rr(cr, cx - 6.5, cy - 6.5, 13, 13, 2.2);
         cr.stroke();
-        cr.newSubPath();
-        cr.arc(cx - 2.5, cy, 2.4, 0, 2 * Math.PI);
-        cr.stroke();
-        cr.rectangle(cx + 2.5, cy - 1.8, 3, 3.6);
+        cr.moveTo(cx, cy - 3.6);
+        cr.lineTo(cx + 3.8, cy + 3);
+        cr.lineTo(cx - 3.8, cy + 3);
+        cr.closePath();
         cr.fill();
-        line(cr, cx - 5, cy + 4.5, cx - 5, cy + 7);
-        line(cr, cx + 5, cy + 4.5, cx + 5, cy + 7);
+        for (const d of [-3, 3]) {
+            line(cr, cx + d, cy - 8, cx + d, cy - 6.5);
+            line(cr, cx + d, cy + 6.5, cx + d, cy + 8);
+            line(cr, cx - 8, cy + d, cx - 6.5, cy + d);
+            line(cr, cx + 6.5, cy + d, cx + 8, cy + d);
+        }
     },
-    mem(cr, cx, cy) {                   // RAM stick
-        rr(cr, cx - 7.5, cy - 3.5, 15, 7, 1);
+    mem(cr, cx, cy) {                   // RAM module: four chips on a stick with a notch
+        rr(cr, cx - 8, cy - 4, 16, 8, 1);
         cr.stroke();
-        cr.rectangle(cx - 5, cy - 1.5, 3, 3);
-        cr.rectangle(cx - 1, cy - 1.5, 3, 3);
-        cr.rectangle(cx + 3, cy - 1.5, 3, 3);
+        for (const d of [-6.5, -2.5, 1.5, 5.5])
+            cr.rectangle(cx + d, cy - 2, 2.2, 3);
         cr.fill();
-        for (const d of [-5, -2.5, 0, 2.5, 5])
-            line(cr, cx + d, cy + 3.5, cx + d, cy + 6);
+        line(cr, cx - 8, cy + 4, cx - 1, cy + 4);
+        line(cr, cx + 1, cy + 4, cx + 8, cy + 4);
+        line(cr, cx - 1, cy + 4, cx - 1, cy + 5.5);
+        line(cr, cx + 1, cy + 4, cx + 1, cy + 5.5);
     },
     disp(cr, cx, cy) {                  // monitor
         rr(cr, cx - 7.5, cy - 6, 15, 10, 1.5);

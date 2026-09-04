@@ -1,0 +1,374 @@
+[
+ {
+  "in": {
+   "bat_w": 10.0,
+   "core": 3.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": 8.0,
+   "psys": 20.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 30.0,
+   "bat_w": 10.0,
+   "bat_w_raw": 10.0,
+   "cpu_w": 3.0,
+   "display_w": -1.0,
+   "gpu_w": 2.0,
+   "mem_w": 1.0,
+   "other_w": 11.0,
+   "package_w": 8.0,
+   "psys_w": 20.0,
+   "rest_w": 11.0,
+   "soc_w": 3.0,
+   "sys_source": "psys",
+   "sys_w": 20.0
+  },
+  "raw_rest": 11.0,
+  "t": 1001.0
+ },
+ {
+  "in": {
+   "bat_w": 10.0,
+   "core": 3.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": 8.0,
+   "psys": 20.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 30.0,
+   "bat_w": 10.0,
+   "bat_w_raw": 10.0,
+   "cpu_w": 3.0,
+   "display_w": -1.0,
+   "gpu_w": 2.0,
+   "mem_w": 1.0,
+   "other_w": 11.0,
+   "package_w": 8.0,
+   "psys_w": 20.0,
+   "rest_w": 11.0,
+   "soc_w": 3.0,
+   "sys_source": "psys",
+   "sys_w": 20.0
+  },
+  "raw_rest": 11.0,
+  "t": 1002.0
+ },
+ {
+  "in": {
+   "bat_w": -4.0,
+   "core": 6.0,
+   "display_on": true,
+   "dram": 1.5,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": 12.0,
+   "psys": 30.0,
+   "uncore": 3.0
+  },
+  "out": {
+   "adapter_w": 29.274923012311927,
+   "bat_w": 7.462230543091746,
+   "bat_w_raw": -4.0,
+   "cpu_w": 3.5438077407660544,
+   "display_w": -1.0,
+   "gpu_w": 2.1812692469220183,
+   "mem_w": 1.0906346234610091,
+   "other_w": 11.9969808580711,
+   "package_w": 8.725076987688073,
+   "psys_w": 21.81269246922018,
+   "rest_w": 11.9969808580711,
+   "soc_w": 3.000000000000001,
+   "sys_source": "psys",
+   "sys_w": 21.81269246922018
+  },
+  "raw_rest": 16.5,
+  "t": 1003.0
+ },
+ {
+  "in": {
+   "bat_w": -4.0,
+   "core": 6.0,
+   "display_on": true,
+   "dram": 1.5,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": 12.0,
+   "psys": 30.0,
+   "uncore": 3.0
+  },
+  "out": {
+   "adapter_w": 28.681280184142558,
+   "bat_w": 5.38448064449895,
+   "bat_w_raw": -4.0,
+   "cpu_w": 3.9890398618930822,
+   "display_w": -1.0,
+   "gpu_w": 2.329679953964361,
+   "mem_w": 1.1648399769821804,
+   "other_w": 12.813239746803983,
+   "package_w": 9.318719815857444,
+   "psys_w": 23.296799539643608,
+   "rest_w": 12.813239746803983,
+   "soc_w": 3.0000000000000004,
+   "sys_source": "psys",
+   "sys_w": 23.296799539643608
+  },
+  "raw_rest": 16.5,
+  "t": 1004.0
+ },
+ {
+  "in": {
+   "bat_w": -15.0,
+   "core": 4.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": 2.0,
+   "on_ac": false,
+   "package": 9.0,
+   "psys": 14.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": 1.6894011891741698,
+   "bat_w_raw": -15.0,
+   "cpu_w": 3.9910265978738844,
+   "display_w": 2.0,
+   "gpu_w": 2.2699191169839557,
+   "mem_w": 1.1349595584919778,
+   "other_w": 9.215670414957629,
+   "package_w": 9.26094571485784,
+   "psys_w": 21.611575688307447,
+   "rest_w": 11.215670414957629,
+   "soc_w": 3.0,
+   "sys_source": "psys",
+   "sys_w": 21.611575688307447
+  },
+  "raw_rest": 4.0,
+  "t": 1005.0
+ },
+ {
+  "in": {
+   "bat_w": -15.0,
+   "core": 4.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": 2.0,
+   "on_ac": false,
+   "package": 9.0,
+   "psys": 14.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": -1.3358739959668666,
+   "bat_w_raw": -15.0,
+   "cpu_w": 0.5166223701024562,
+   "display_w": 0.0,
+   "gpu_w": 0.2873812523456054,
+   "mem_w": 0.1436906261728027,
+   "other_w": 0.0,
+   "package_w": 9.213644281638032,
+   "psys_w": 20.231831095398014,
+   "rest_w": 0.0,
+   "soc_w": 0.3881797473460026,
+   "sys_source": "battery",
+   "sys_w": 1.3358739959668666
+  },
+  "raw_rest": 4.0,
+  "t": 1006.0
+ },
+ {
+  "in": {
+   "bat_w": -15.0,
+   "core": 4.0,
+   "display_on": false,
+   "dram": 1.0,
+   "emission": 2.0,
+   "on_ac": false,
+   "package": 9.0,
+   "psys": 14.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": -3.812759826565518,
+   "bat_w_raw": -15.0,
+   "cpu_w": 1.4834424592453532,
+   "display_w": 0.0,
+   "gpu_w": 0.8100399626587624,
+   "mem_w": 0.4050199813293812,
+   "other_w": 0.0,
+   "package_w": 9.17491714359631,
+   "psys_w": 19.10219176579,
+   "rest_w": 0.0,
+   "soc_w": 1.1142574233320213,
+   "sys_source": "battery",
+   "sys_w": 3.812759826565518
+  },
+  "raw_rest": 4.0,
+  "t": 1007.0
+ },
+ {
+  "in": {
+   "bat_w": -8.0,
+   "core": 4.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": 5.0,
+   "on_ac": false,
+   "package": 9.0,
+   "psys": 7.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": -4.571777699485607,
+   "bat_w_raw": -8.0,
+   "cpu_w": 1.7876186950562276,
+   "display_w": 0.0,
+   "gpu_w": 0.9611948615218117,
+   "mem_w": 0.48059743076090583,
+   "other_w": 0.0,
+   "package_w": 9.143210044702856,
+   "psys_w": 16.908436578299398,
+   "rest_w": 0.0,
+   "soc_w": 1.3423667121466611,
+   "sys_source": "battery",
+   "sys_w": 4.571777699485607
+  },
+  "raw_rest": 0.0,
+  "t": 1008.0
+ },
+ {
+  "in": {
+   "bat_w": -8.0,
+   "core": -1.0,
+   "display_on": true,
+   "dram": -1.0,
+   "emission": -1.0,
+   "on_ac": false,
+   "package": -1.0,
+   "psys": -1.0,
+   "uncore": -1.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": -5.19320897418112,
+   "bat_w_raw": -8.0,
+   "cpu_w": -1.0,
+   "display_w": -1.0,
+   "gpu_w": -1.0,
+   "mem_w": -1.0,
+   "other_w": 5.19320897418112,
+   "package_w": -1.0,
+   "psys_w": -1.0,
+   "rest_w": 5.19320897418112,
+   "soc_w": -1.0,
+   "sys_source": "battery",
+   "sys_w": 5.19320897418112
+  },
+  "raw_rest": -1.0,
+  "t": 1009.0
+ },
+ {
+  "in": {
+   "bat_w": 0.0,
+   "core": 2.0,
+   "display_on": true,
+   "dram": -1.0,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": 5.0,
+   "psys": -1.0,
+   "uncore": 1.0
+  },
+  "out": {
+   "adapter_w": 3.748160105677358,
+   "bat_w": -4.251839894322642,
+   "bat_w_raw": 0.0,
+   "cpu_w": 2.0,
+   "display_w": -1.0,
+   "gpu_w": 1.0,
+   "mem_w": 0.0,
+   "other_w": 3.0,
+   "package_w": 5.0,
+   "psys_w": -1.0,
+   "rest_w": 3.0,
+   "soc_w": 2.0,
+   "sys_source": "estimate",
+   "sys_w": 8.0
+  },
+  "raw_rest": -1.0,
+  "t": 1010.0
+ },
+ {
+  "in": {
+   "bat_w": 0.0,
+   "core": -1.0,
+   "display_on": true,
+   "dram": -1.0,
+   "emission": -1.0,
+   "on_ac": true,
+   "package": -1.0,
+   "psys": -1.0,
+   "uncore": -1.0
+  },
+  "out": {
+   "adapter_w": 0.0,
+   "bat_w": -3.4811120786457836,
+   "bat_w_raw": 0.0,
+   "cpu_w": -1.0,
+   "display_w": -1.0,
+   "gpu_w": -1.0,
+   "mem_w": -1.0,
+   "other_w": -1.0,
+   "package_w": -1.0,
+   "psys_w": -1.0,
+   "rest_w": -1.0,
+   "soc_w": -1.0,
+   "sys_source": "none",
+   "sys_w": -1.0
+  },
+  "raw_rest": -1.0,
+  "t": 1011.0
+ },
+ {
+  "in": {
+   "bat_w": 2.0,
+   "core": 3.0,
+   "display_on": true,
+   "dram": 1.0,
+   "emission": 50.0,
+   "on_ac": true,
+   "package": 8.0,
+   "psys": 10.0,
+   "uncore": 2.0
+  },
+  "out": {
+   "adapter_w": 7.512444980145515,
+   "bat_w": -2.4875550198544847,
+   "bat_w_raw": 2.0,
+   "cpu_w": 3.0,
+   "display_w": 1.0,
+   "gpu_w": 2.0,
+   "mem_w": 1.0,
+   "other_w": 0.0,
+   "package_w": 8.0,
+   "psys_w": 10.0,
+   "rest_w": 1.0,
+   "soc_w": 3.0,
+   "sys_source": "psys",
+   "sys_w": 10.0
+  },
+  "raw_rest": 1.0,
+  "t": 1012.0
+ }
+]

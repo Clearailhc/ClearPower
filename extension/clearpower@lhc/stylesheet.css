@@ -17,3 +17,4 @@
 .clearpower-error { color: #e07a5f; }
 .clearpower-mini { padding: 1px 10px; border-radius: 10px; font-size: 0.85em; }
 .clearpower-pill:hover { background-color: rgba(128, 128, 128, 0.28); }
+.clearpower-tooltip { background-color: rgba(30, 30, 30, 0.96); color: #eeeeee; border-radius: 8px; padding: 6px 9px; font-size: 0.9em; border: 1px solid rgba(255,255,255,0.12); }

@@ -83,16 +83,13 @@ class Sampler:
         self.raw = raw
 
         # ---- smoothed inputs ----
-        bat_w = self._smooth("bat_w", raw["bat_w"] if raw["bat_w"] is not None else 0.0, now)
+        # bat_w is signed (negative = discharging), so it bypasses the -1 sentinel logic.
+        bat_w = self.ema["bat_w"].update(raw["bat_w"] if raw["bat_w"] is not None else 0.0, now)
         psys = self._smooth("psys", raw["psys"], now)
         package = self._smooth("package", raw["package"], now)
         core = self._smooth("core", raw["core"], now)
         uncore = self._smooth("uncore", raw["uncore"], now)
         dram = self._smooth("dram", raw["dram"], now)
-        # bat_w is signed; the EMA above is fine with that but -1 sentinel logic must not apply
-        if self.ema["bat_w"].v is None:
-            bat_w = 0.0
-
         # ---- whole-machine draw ----
         if not on_ac and bat_w < -0.05:
             sys_w, sys_source = -bat_w, "battery"      # physical truth incl. all losses

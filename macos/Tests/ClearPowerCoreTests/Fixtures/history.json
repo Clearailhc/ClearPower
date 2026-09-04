@@ -1,0 +1,546 @@
+{
+ "get": {
+  "all_sys": [
+   [
+    1000,
+    10.75
+   ],
+   [
+    1010,
+    12.5
+   ],
+   [
+    1020,
+    14.0
+   ],
+   [
+    1030,
+    15.5
+   ],
+   [
+    1040,
+    17.0
+   ],
+   [
+    1050,
+    18.5
+   ],
+   [
+    1060,
+    20.0
+   ],
+   [
+    1070,
+    21.5
+   ],
+   [
+    1080,
+    23.0
+   ],
+   [
+    1090,
+    24.5
+   ],
+   [
+    1100,
+    26.0
+   ],
+   [
+    1110,
+    27.5
+   ]
+  ],
+  "bat_pct": [
+   [
+    1050,
+    50.0
+   ],
+   [
+    1060,
+    50.0
+   ],
+   [
+    1070,
+    50.0
+   ],
+   [
+    1080,
+    50.0
+   ],
+   [
+    1090,
+    50.0
+   ],
+   [
+    1100,
+    50.0
+   ],
+   [
+    1110,
+    50.0
+   ]
+  ],
+  "soc_w": [
+   [
+    1050,
+    3.0
+   ],
+   [
+    1060,
+    1.6666666666666667
+   ],
+   [
+    1070,
+    3.0
+   ],
+   [
+    1080,
+    1.6666666666666667
+   ],
+   [
+    1090,
+    1.6666666666666667
+   ],
+   [
+    1100,
+    3.0
+   ],
+   [
+    1110,
+    1.6666666666666667
+   ]
+  ],
+  "sys_w": [
+   [
+    1050,
+    18.5
+   ],
+   [
+    1060,
+    20.0
+   ],
+   [
+    1070,
+    21.5
+   ],
+   [
+    1080,
+    23.0
+   ],
+   [
+    1090,
+    24.5
+   ],
+   [
+    1100,
+    26.0
+   ],
+   [
+    1110,
+    27.5
+   ]
+  ]
+ },
+ "snaps": [
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 10.0,
+   "temp_cpu": 40.0,
+   "ts": 1000.0
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 10.5,
+   "temp_cpu": 40.0,
+   "ts": 1003.3
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 11.0,
+   "temp_cpu": 40.0,
+   "ts": 1006.6
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 11.5,
+   "temp_cpu": 40.0,
+   "ts": 1009.9
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 12.0,
+   "temp_cpu": 40.0,
+   "ts": 1013.2
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 12.5,
+   "temp_cpu": 40.0,
+   "ts": 1016.5
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 13.0,
+   "temp_cpu": 40.0,
+   "ts": 1019.8
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 13.5,
+   "temp_cpu": 40.0,
+   "ts": 1023.1
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 14.0,
+   "temp_cpu": 40.0,
+   "ts": 1026.4
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 14.5,
+   "temp_cpu": 40.0,
+   "ts": 1029.7
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 15.0,
+   "temp_cpu": 40.0,
+   "ts": 1033.0
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 15.5,
+   "temp_cpu": 40.0,
+   "ts": 1036.3
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 16.0,
+   "temp_cpu": 40.0,
+   "ts": 1039.6
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 16.5,
+   "temp_cpu": 40.0,
+   "ts": 1042.9
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 17.0,
+   "temp_cpu": 40.0,
+   "ts": 1046.2
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 17.5,
+   "temp_cpu": 40.0,
+   "ts": 1049.5
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 18.0,
+   "temp_cpu": 40.0,
+   "ts": 1052.8
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 18.5,
+   "temp_cpu": 40.0,
+   "ts": 1056.1
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 19.0,
+   "temp_cpu": 40.0,
+   "ts": 1059.4
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 19.5,
+   "temp_cpu": 40.0,
+   "ts": 1062.7
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 20.0,
+   "temp_cpu": 40.0,
+   "ts": 1066.0
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 20.5,
+   "temp_cpu": 40.0,
+   "ts": 1069.3
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 21.0,
+   "temp_cpu": 40.0,
+   "ts": 1072.6
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 21.5,
+   "temp_cpu": 40.0,
+   "ts": 1075.9
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 22.0,
+   "temp_cpu": 40.0,
+   "ts": 1079.2
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 22.5,
+   "temp_cpu": 40.0,
+   "ts": 1082.5
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 23.0,
+   "temp_cpu": 40.0,
+   "ts": 1085.8
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 23.5,
+   "temp_cpu": 40.0,
+   "ts": 1089.1
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 24.0,
+   "temp_cpu": 40.0,
+   "ts": 1092.4
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 24.5,
+   "temp_cpu": 40.0,
+   "ts": 1095.7
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 25.0,
+   "temp_cpu": 40.0,
+   "ts": 1099.0
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 25.5,
+   "temp_cpu": 40.0,
+   "ts": 1102.3
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 26.0,
+   "temp_cpu": 40.0,
+   "ts": 1105.6
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 26.5,
+   "temp_cpu": 40.0,
+   "ts": 1108.9
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 27.0,
+   "temp_cpu": 40.0,
+   "ts": 1112.2
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": -1.0,
+   "sys_w": 27.5,
+   "temp_cpu": 40.0,
+   "ts": 1115.5
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 28.0,
+   "temp_cpu": 40.0,
+   "ts": 1118.8
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 28.5,
+   "temp_cpu": 40.0,
+   "ts": 1122.1
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 29.0,
+   "temp_cpu": 40.0,
+   "ts": 1125.4
+  },
+  {
+   "adapter_w": 0.0,
+   "bat_pct": 50,
+   "bat_w": -2.0,
+   "display_w": 1.0,
+   "soc_w": 3.0,
+   "sys_w": 29.5,
+   "temp_cpu": 40.0,
+   "ts": 1128.7
+  }
+ ]
+}
