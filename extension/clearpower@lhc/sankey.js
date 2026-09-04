@@ -204,8 +204,8 @@ class Sankey extends St.DrawingArea {
                 flows.push({a, b, w});
         };
         if (onAc) {
-            const fromBat = Math.max(-batW, 0);
-            const toBat = Math.max(batW, 0);
+            const fromBat = -batW >= 0.05 ? -batW : 0;
+            const toBat = batW >= 0.05 ? batW : 0;
             const adToPc = Math.max(sysW - fromBat, 0);
             add(0, 'adapter', t('adapter'), adToPc + toBat, C.adapter);
             if (fromBat > 0)

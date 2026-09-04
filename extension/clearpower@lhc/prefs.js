@@ -45,9 +45,20 @@ export default class ClearPowerPrefs extends ExtensionPreferences {
             [t('panelWatts'), t('panelPercent'), t('panelBoth'), t('panelRuntime'), t('panelNone')]));
         top.add(combo(settings, 'flow-animation', t('prefsFlow'), t('prefsFlowSub'),
             ['always', 'on-ac', 'never'], [t('flowAlways'), t('flowOnAc'), t('flowNever')]));
+        const iconRow = new Adw.SwitchRow({title: t('prefsShowIcon')});
+        settings.bind('show-panel-icon', iconRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        top.add(iconRow);
         top.add(combo(settings, 'language', t('prefsLanguage'), null,
             ['system', 'en', 'zh-cn'], [t('langSystem'), t('langEn'), t('langZh')]));
         page.add(top);
+
+        const chg = new Adw.PreferencesGroup({title: t('prefsCharge')});
+        const limitRow = new Adw.SpinRow({
+            title: t('prefsLimit'), subtitle: t('prefsLimitSub'),
+            adjustment: new Gtk.Adjustment({lower: 50, upper: 100, step_increment: 1, page_increment: 10, value: 80}),
+        });
+        chg.add(limitRow);
+        page.add(chg);
 
         const rt = new Adw.PreferencesGroup({title: t('prefsRuntime')});
         const wins = [10, 30, 60];
@@ -82,6 +93,38 @@ export default class ClearPowerPrefs extends ExtensionPreferences {
         } catch (e) {
             status.title = e.message;
         }
+        // Charge limit: reflect the daemon's value, write back on change (debounced).
+        let limitTimer = 0, limitSyncing = false;
+        const syncLimit = () => {
+            const v = this._proxy?.get_cached_property('ChargeLimit');
+            if (v) {
+                limitSyncing = true;
+                limitRow.value = v.unpack();
+                limitSyncing = false;
+            }
+        };
+        syncLimit();
+        this._proxy?.connect('g-properties-changed', () => syncLimit());
+        limitRow.connect('notify::value', () => {
+            if (limitSyncing || !this._proxy)
+                return;
+            if (limitTimer)
+                GLib.source_remove(limitTimer);
+            limitTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 600, () => {
+                limitTimer = 0;
+                this._proxy.call('SetChargeLimit', new GLib.Variant('(i)', [Math.round(limitRow.value)]),
+                    Gio.DBusCallFlags.NONE, -1, null, (p, res) => {
+                        try {
+                            p.call_finish(res);
+                            limitRow.subtitle = t('prefsLimitSub');
+                        } catch (e) {
+                            limitRow.subtitle = e.message.replace(/^GDBus.Error:[^:]+: /, '');
+                        }
+                    });
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+
         const refresh = () => {
             if (!this._proxy)
                 return false;

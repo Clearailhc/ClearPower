@@ -51,6 +51,7 @@ class Indicator extends PanelMenu.Button {
         this._profId = profiles.connect('changed', () => this._syncProfiles());
         this._settingsIds = [
             settings.connect('changed::panel-text', () => this._updatePanel()),
+            settings.connect('changed::show-panel-icon', () => this._updatePanel()),
             settings.connect('changed::runtime-window', () => this._refreshRuntime()),
             settings.connect('changed::flow-animation', () => this._sankey.setFlowMode(settings.get_string('flow-animation'))),
             settings.connect('changed::content-aware', () => this._syncContentTimer()),
@@ -138,6 +139,8 @@ class Indicator extends PanelMenu.Button {
         rt.add_child(this._runtime);
         rt.add_child(this._windowBtn);
         batBox.add_child(rt);
+        this._health = new St.Label({text: '', style_class: 'clearpower-dim', x_expand: true});
+        batBox.add_child(this._health);
         this._batItem = this._row(batBox);
 
         this._sankey = new Sankey();
@@ -332,6 +335,13 @@ class Indicator extends PanelMenu.Button {
         this._bar.update({pct: snap.bat_pct ?? 0, status: snap.bat_status ?? '', onAc: !!snap.on_ac});
         this._sankey.update(snap);
         this._refreshRuntime(snap);
+        if (snap.bat_design_wh > 0) {
+            this._health.text = t('health', {
+                p: Math.round(100 * snap.bat_full_wh / snap.bat_design_wh),
+                full: snap.bat_full_wh.toFixed(1), design: snap.bat_design_wh.toFixed(1),
+                n: snap.cycle_count ?? 0,
+            });
+        }
         const parts = [];
         if (snap.temp_cpu >= 0)
             parts.push(`CPU ${Math.round(snap.temp_cpu)}°`);
@@ -395,6 +405,7 @@ class Indicator extends PanelMenu.Button {
             this._label.text = text;
             this._label.visible = text !== '';
         }
+        this._icon.visible = this._settings.get_boolean('show-panel-icon') || text === '';
     }
 
     destroy() {

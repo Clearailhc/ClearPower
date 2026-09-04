@@ -35,6 +35,10 @@
       <default>'system'</default>
       <summary>UI language</summary>
     </key>
+    <key name="show-panel-icon" type="b">
+      <default>false</default>
+      <summary>Show the battery icon next to the panel text</summary>
+    </key>
     <key name="content-aware" type="b">
       <default>true</default>
       <summary>Sample a tiny screen thumbnail while the popover is open to refine the OLED display estimate</summary>

@@ -55,17 +55,24 @@ class ChargeControl:
         return v
 
     def _write_thresholds(self, start, end):
-        """Write in an order that never violates start < end."""
-        cur_start = read_int(self.p_start) or 0
+        """Write in an order that never violates start < end at any moment.
+
+        Raising the limit: end first (start still below the old end), then start.
+        Lowering it: start first (drops below the new end), then end.
+        """
         if start >= end:
             start = max(end - 1, 0)
-        if start >= (read_int(self.p_end) or 100) or cur_start >= end:
-            # lowering: start first, then end
-            write_str(self.p_start, start)
-            write_str(self.p_end, end)
-        else:
-            write_str(self.p_end, end)
-            write_str(self.p_start, start)
+        cur_end = read_int(self.p_end) or 100
+        order = (self.p_end, end), (self.p_start, start)
+        if end <= cur_end:
+            order = order[::-1]
+        try:
+            for path, value in order:
+                write_str(path, value)
+        except OSError:
+            # firmware quirk: try the other order once before giving up
+            for path, value in order[::-1]:
+                write_str(path, value)
 
     def _write_behaviour(self, b):
         if not self.behaviour_supported:
