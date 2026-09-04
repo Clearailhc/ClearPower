@@ -2,11 +2,27 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.5.1] — 2026-09-04
+
+First release that actually ships packages for all three platforms: 0.5.0 was tagged but its
+release build failed, so no `.deb`, DMG or installer was ever published. Same application as
+0.5.0.
+
+### Fixed
+- Build: the macOS CI job ran on an Xcode without Swift Testing, so `import Testing` failed
+  and the whole release was skipped; it now runs on macOS 15 with the newest Xcode on the
+  image, and installs the Pillow the DMG background needs (a missing background no longer
+  fails the build).
+- macOS: `BatteryBarView` and `SankeyView` mixed `Double` and `CGFloat`, which Swift 6.2
+  rejects as ambiguous (one expression also exceeded the type-checker's budget). The
+  conversion now happens at the Canvas boundary.
+
 ## [0.5.0] — 2026-09-04
 
-First release shipped for all three platforms at once (one GitHub Release with the Linux
-`.deb`, the macOS `.dmg`, the Windows installer + portable zip and a single `SHA256SUMS`,
-built by `.github/workflows/build.yml`).
+Intended as the first release for all three platforms at once (one GitHub Release with the
+Linux `.deb`, the macOS `.dmg`, the Windows installer + portable zip and a single
+`SHA256SUMS`, built by `.github/workflows/build.yml`) — the build failed, so this tag has no
+packages; 0.5.1 ships them.
 
 ### Changed
 - README rewritten as the project front page, with a Chinese version (`README.zh-CN.md`);
