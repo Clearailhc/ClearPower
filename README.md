@@ -129,6 +129,12 @@ GSETTINGS_BACKEND=keyfile XDG_CONFIG_HOME=/tmp/cp-cfg CLEARPOWER_DEV=1 \
 
 with `/tmp/cp-cfg/glib-2.0/settings/keyfile` containing `[org/gnome/shell]` / `enabled-extensions=['clearpower@lhc']`. `CLEARPOWER_DEV=1` opens the popover on start and enables unsafe mode so `org.gnome.Shell.Eval` and screenshots work; `CLEARPOWER_BUS=session` makes the extension talk to a session-bus daemon.
 
+## Roadmap
+
+- **Windows** (next): a tray app with the same popover, backed by Windows battery/power APIs and the same `Snapshot` contract.
+- macOS: menu-bar app on SMC/IOKit.
+- AMD RAPL and more vendors' charge-threshold interfaces on Linux.
+
 ## Contributing
 
 Issues and pull requests are welcome, especially: RAPL on AMD, charge-threshold interfaces of other vendors, translations (add a dictionary in `extension/clearpower@lhc/i18n.js`), and frontends for other desktops. Keep the two rules that shape this project: every number shown is measured or derived from measurements, and nothing runs when nobody is looking.
