@@ -1,5 +1,6 @@
 # Builds all three platforms on every push / PR, and publishes one GitHub Release with the
-# Linux .deb, the macOS .dmg and the Windows installer + portable zip when a v* tag is pushed.
+# Linux .deb, the macOS .dmg and the Windows installer + portable zip — either when a v* tag
+# is pushed, or from a manual run with `release` ticked (which creates the tag itself).
 name: build
 
 on:
@@ -8,6 +9,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub Release for the version in VERSION"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -73,8 +79,10 @@ jobs:
             windows/dist/*.exe
             windows/dist/*.zip
 
+  # Runs for a pushed v* tag, and for a manual run with `release` ticked (which tags the
+  # commit it builds as v<VERSION> itself).
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.release
     needs: [linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
@@ -86,15 +94,19 @@ jobs:
       - name: Checksums and notes
         id: meta
         run: |
-          cd artifacts
-          sha256sum * > SHA256SUMS
-          cat SHA256SUMS
-          VERSION="${GITHUB_REF_NAME#v}"
-          NOTES="../docs/RELEASE-v${VERSION}.md"
+          (cd artifacts && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v$(tr -d '[:space:]' < VERSION)"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          NOTES="docs/RELEASE-${TAG}.md"
           if [ -f "$NOTES" ]; then echo "notes=$NOTES" >> "$GITHUB_OUTPUT"; else echo "notes=" >> "$GITHUB_OUTPUT"; fi
       - uses: softprops/action-gh-release@v2
         with:
-          name: ClearPower ${{ github.ref_name }}
-          body_path: ${{ steps.meta.outputs.notes && format('docs/RELEASE-{0}.md', github.ref_name) || '' }}
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ClearPower ${{ steps.meta.outputs.tag }}
+          body_path: ${{ steps.meta.outputs.notes }}
           generate_release_notes: ${{ steps.meta.outputs.notes == '' }}
           files: artifacts/*
