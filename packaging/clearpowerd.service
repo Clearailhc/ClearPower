@@ -6,7 +6,7 @@ After=multi-user.target
 Type=dbus
 BusName=org.clearpower.Daemon1
 ExecStart=/usr/bin/python3 -m clearpowerd
-Environment=PYTHONPATH=/usr/local/lib/clearpower
+Environment=PYTHONPATH=/usr/lib/clearpower
 Environment=PYTHONUNBUFFERED=1
 Restart=on-failure
 StateDirectory=clearpower

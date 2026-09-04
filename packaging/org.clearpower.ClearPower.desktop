@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=ClearPower
+Comment=Battery charge limit and live power flow for your laptop
+Exec=clearpower
+Icon=org.clearpower.ClearPower
+Terminal=false
+Categories=Utility;System;Settings;
+Keywords=battery;power;charge;limit;energy;watt;
+OnlyShowIn=GNOME;
+StartupNotify=false

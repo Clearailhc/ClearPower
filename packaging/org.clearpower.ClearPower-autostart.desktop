@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=ClearPower (enable indicator)
+Comment=Enables the ClearPower top-bar indicator the first time you log in after installing
+Exec=clearpower --autostart
+Icon=org.clearpower.ClearPower
+Terminal=false
+NoDisplay=true
+OnlyShowIn=GNOME;
+X-GNOME-Autostart-Phase=Applications

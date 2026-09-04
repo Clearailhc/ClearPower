@@ -1,0 +1,15 @@
+Package: clearpower
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Maintainer: 李皓辰 <haochenli@pku.edu.cn>
+Homepage: https://github.com/Clearailhc/ClearPower
+Depends: python3 (>= 3.10), python3-gi, gir1.2-glib-2.0, python3-psutil, gnome-shell (>= 48), polkitd | policykit-1, dbus, systemd
+Recommends: power-profiles-daemon
+Description: Battery charge control and live power-flow monitor for laptops
+ ClearPower shows your laptop's live power draw in the GNOME top bar and lets
+ you cap the battery charge level, top it up, or force a discharge — in the
+ spirit of AlDente on macOS. A small root daemon (clearpowerd) samples sysfs
+ and Intel RAPL and owns the charge-control state machine; the GNOME Shell
+ extension draws the power-flow diagram and controls.

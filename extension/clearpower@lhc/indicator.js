@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
@@ -29,7 +30,8 @@ class Indicator extends PanelMenu.Button {
         this._commitTimer = 0;
 
         const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
-        this._icon = new St.Icon({icon_name: 'battery-missing-symbolic', style_class: 'system-status-icon'});
+        this._gicon = Gio.icon_new_for_string(`${ext.path}/icons/clearpower-symbolic.svg`);
+        this._icon = new St.Icon({gicon: this._gicon, style_class: 'system-status-icon'});
         this._label = new St.Label({text: '–', y_align: Clutter.ActorAlign.CENTER, style_class: 'clearpower-panel-label'});
         box.add_child(this._icon);
         box.add_child(this._label);
@@ -282,13 +284,14 @@ class Indicator extends PanelMenu.Button {
     _updatePanel() {
         const snap = this._client.snapshot;
         if (!this._client.online || !snap) {
-            this._icon.icon_name = 'battery-missing-symbolic';
-            this._label.text = '';
+            this._icon.opacity = 120;
+            if (this._label.text !== '') {
+                this._label.text = '';
+                this._label.visible = false;
+            }
             return;
         }
-        const onAc = !!snap.on_ac;
-        const charging = (snap.bat_w ?? 0) > 0;
-        this._icon.icon_name = onAc ? (charging ? 'battery-good-charging-symbolic' : 'ac-adapter-symbolic') : 'battery-good-symbolic';
+        this._icon.opacity = 255;
         const mode = this._settings.get_string('panel-text');
         const w = fmtW(snap.sys_w, 1);
         const p = `${snap.bat_pct ?? 0}%`;

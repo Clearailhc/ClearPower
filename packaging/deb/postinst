@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+case "$1" in
+  configure)
+    if [ -x /usr/bin/glib-compile-schemas ]; then glib-compile-schemas /usr/share/glib-2.0/schemas || true; fi
+    if [ -x /usr/bin/gtk-update-icon-cache ]; then gtk-update-icon-cache -q -f -t /usr/share/icons/hicolor || true; fi
+    if [ -x /usr/bin/update-desktop-database ]; then update-desktop-database -q /usr/share/applications || true; fi
+    if [ -d /run/systemd/system ]; then
+      systemctl daemon-reload || true
+      # let the running message bus see the new policy before the service claims the name
+      busctl --system call org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus ReloadConfig >/dev/null 2>&1 || true
+      systemctl enable clearpowerd.service >/dev/null 2>&1 || true
+      systemctl restart clearpowerd.service || true
+    fi
+    echo "ClearPower installed. The top-bar indicator appears at your next login" \
+         "(or run: gnome-extensions enable clearpower@lhc  if GNOME Shell was started after this install)."
+    ;;
+esac
+exit 0

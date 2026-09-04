@@ -73,6 +73,9 @@ class Sampler:
             pass
 
         adapter_w = (sys_w + max(bat_w, 0.0)) if on_ac else 0.0
+        if sys_source != "estimate":
+            # The panel can't draw more than what is left after the SoC; keep a sliver for "other".
+            display_w = min(display_w, max(sys_w - max(soc_w, 0.0), 0.0) * 0.85)
         other_w = max(sys_w - max(soc_w, 0.0) - display_w, 0.0)
 
         snap.update({

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- battery body (stroke drawn as an even-odd filled ring) + terminal + bolt -->
+  <path fill="#2e3436" fill-rule="evenodd"
+        d="M3 3.5 A2 2 0 0 0 1 5.5 V10.5 A2 2 0 0 0 3 12.5 H11.5 A2 2 0 0 0 13.5 10.5 V5.5 A2 2 0 0 0 11.5 3.5 Z
+           M3 5 H11.5 A0.5 0.5 0 0 1 12 5.5 V10.5 A0.5 0.5 0 0 1 11.5 11 H3 A0.5 0.5 0 0 1 2.5 10.5 V5.5 A0.5 0.5 0 0 1 3 5 Z"/>
+  <rect x="14" y="6.5" width="1.5" height="3" rx="0.75" fill="#2e3436"/>
+  <path fill="#2e3436" d="M8.1 5.6 L5.6 8.6 H7.4 L6.7 10.4 L9.2 7.4 H7.4 Z"/>
+</svg>
