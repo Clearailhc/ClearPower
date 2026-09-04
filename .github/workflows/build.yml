@@ -1,0 +1,91 @@
+# Builds all three platforms on every push / PR, and publishes one GitHub Release with the
+# Linux .deb, the macOS .dmg and the Windows installer + portable zip when a v* tag is pushed.
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build .deb
+        run: ./packaging/deb/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*.deb
+
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        working-directory: macos
+        run: swift test
+      - name: Build app + DMG
+        working-directory: macos
+        run: |
+          scripts/build-app.sh
+          scripts/make-dmg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: macos/dist/*.dmg
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ISCC.exe -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+      - name: Build, test, package
+        shell: pwsh
+        run: pwsh windows/build.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            windows/dist/*.exe
+            windows/dist/*.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Checksums and notes
+        id: meta
+        run: |
+          cd artifacts
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES="../docs/RELEASE-v${VERSION}.md"
+          if [ -f "$NOTES" ]; then echo "notes=$NOTES" >> "$GITHUB_OUTPUT"; else echo "notes=" >> "$GITHUB_OUTPUT"; fi
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ClearPower ${{ github.ref_name }}
+          body_path: ${{ steps.meta.outputs.notes && format('docs/RELEASE-{0}.md', github.ref_name) || '' }}
+          generate_release_notes: ${{ steps.meta.outputs.notes == '' }}
+          files: artifacts/*

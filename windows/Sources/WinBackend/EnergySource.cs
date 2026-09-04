@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace ClearPower.Win
@@ -77,7 +78,14 @@ namespace ClearPower.Win
             }
         }
 
-        /// <summary>Per-domain watts since the previous call, or null when no delta is available yet.</summary>
+        private EnergyReading? _lastResult;
+        private const long MinDeltaMs = 200;
+
+        /// <summary>
+        /// Per-domain watts since the previous call, or null when no delta is available yet.
+        /// Sampled again within 200 ms (popover just opened, rate change): the previous
+        /// reading is returned and the baselines are kept, so a real delta accumulates.
+        /// </summary>
         public EnergyReading? Sample()
         {
             if (!Available)
@@ -85,14 +93,12 @@ namespace ClearPower.Win
                 if (Clock.MonotonicNow() >= _nextInitTry) TryInit();
                 if (!Available) return null;
             }
-            var sums = new Dictionary<string, double>();
+            var readings = new List<(Channel ch, long e, long t)>();
             foreach (var ch in _channels)
             {
-                long e, t;
                 try
                 {
-                    e = ch.Energy.NextSample().RawValue;
-                    t = ch.Time.NextSample().RawValue;
+                    readings.Add((ch, ch.Energy.NextSample().RawValue, ch.Time.NextSample().RawValue));
                 }
                 catch (Exception ex)
                 {
@@ -101,6 +107,12 @@ namespace ClearPower.Win
                     _channels.Clear();
                     return null;
                 }
+            }
+            if (readings.Count > 0 && readings.All(r => r.ch.Primed) && readings.All(r => r.t - r.ch.LastTime < MinDeltaMs && r.t - r.ch.LastTime >= 0))
+                return _lastResult;   // too soon after the previous sample: keep the previous reading
+            var sums = new Dictionary<string, double>();
+            foreach (var (ch, e, t) in readings)
+            {
                 if (ch.Primed)
                 {
                     var dt = t - ch.LastTime;   // ms
@@ -116,12 +128,13 @@ namespace ClearPower.Win
                 ch.LastTime = t;
                 ch.Primed = true;
             }
-            if (sums.Count == 0) return null;
+            if (sums.Count == 0) { _lastResult = null; return null; }
             var r = new EnergyReading();
             if (sums.TryGetValue("package", out var p)) r.Package = p;
             if (sums.TryGetValue("core", out var c)) r.Core = c;
             if (sums.TryGetValue("uncore", out var u)) r.Uncore = u;
             if (sums.TryGetValue("dram", out var d)) r.Dram = d;
+            _lastResult = r;
             return r;
         }
 
@@ -129,6 +142,7 @@ namespace ClearPower.Win
         public void Reset()
         {
             foreach (var ch in _channels) ch.Primed = false;
+            _lastResult = null;
         }
     }
 }
