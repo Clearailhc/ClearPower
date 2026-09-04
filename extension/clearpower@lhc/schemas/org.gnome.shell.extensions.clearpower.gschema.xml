@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <enum id="org.gnome.shell.extensions.clearpower.panel-text">
+    <value nick="watts" value="0"/>
+    <value nick="percent" value="1"/>
+    <value nick="both" value="2"/>
+    <value nick="none" value="3"/>
+  </enum>
+  <schema id="org.gnome.shell.extensions.clearpower" path="/org/gnome/shell/extensions/clearpower/">
+    <key name="panel-text" enum="org.gnome.shell.extensions.clearpower.panel-text">
+      <default>'watts'</default>
+      <summary>What to show next to the panel icon</summary>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,33 @@
+<!DOCTYPE node PUBLIC "-//freedesktop//DTD D-BUS Object Introspection 1.0//EN"
+ "http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd">
+<node>
+  <interface name="org.clearpower.Daemon1">
+    <property name="Version" type="s" access="read"/>
+    <property name="Snapshot" type="a{sv}" access="read"/>
+    <property name="ChargeMode" type="s" access="read"/>
+    <property name="ChargeLimit" type="i" access="read"/>
+    <property name="ChargeTarget" type="i" access="read"/>
+    <property name="ChargeControlSupported" type="b" access="read"/>
+    <property name="DischargeSupported" type="b" access="read"/>
+    <method name="SetChargeLimit">
+      <arg name="percent" type="i" direction="in"/>
+    </method>
+    <method name="StartTopUp"/>
+    <method name="StartDischarge">
+      <arg name="target_percent" type="i" direction="in"/>
+    </method>
+    <method name="CancelSpecial"/>
+    <method name="GetTopProcesses">
+      <arg name="count" type="i" direction="in"/>
+      <arg name="procs" type="a(sdd)" direction="out"/>
+    </method>
+    <method name="GetHistory">
+      <arg name="field" type="s" direction="in"/>
+      <arg name="seconds" type="i" direction="in"/>
+      <arg name="points" type="a(dd)" direction="out"/>
+    </method>
+    <signal name="Sample">
+      <arg name="snapshot" type="a{sv}"/>
+    </signal>
+  </interface>
+</node>

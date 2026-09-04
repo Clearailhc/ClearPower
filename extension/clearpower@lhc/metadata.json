@@ -1,0 +1,9 @@
+{
+  "uuid": "clearpower@lhc",
+  "name": "ClearPower",
+  "description": "AlDente-style power monitor and battery charge control for Linux laptops.",
+  "shell-version": ["48", "49", "50"],
+  "settings-schema": "org.gnome.shell.extensions.clearpower",
+  "url": "",
+  "version": 1
+}

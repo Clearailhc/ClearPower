@@ -1,0 +1,6 @@
+"""ClearPower daemon: samples power/battery data and controls charging."""
+VERSION = "0.1.0"
+BUS_NAME = "org.clearpower.Daemon1"
+OBJECT_PATH = "/org/clearpower/Daemon"
+IFACE = "org.clearpower.Daemon1"
+POLKIT_ACTION = "org.clearpower.set-charge-control"
