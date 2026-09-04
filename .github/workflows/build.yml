@@ -25,12 +25,21 @@ jobs:
           path: dist/*.deb
 
   macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      # Swift Testing (`import Testing`) needs a Swift 6 toolchain; pick the newest Xcode on
+      # the image rather than whatever the runner defaults to.
+      - name: Select newest Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+          swift --version
       - name: Test
         working-directory: macos
         run: swift test
+      # make-dmg.sh renders the DMG background with Pillow, which is not on the image.
+      - name: Install Pillow
+        run: python3 -m pip install --break-system-packages --quiet pillow
       - name: Build app + DMG
         working-directory: macos
         run: |

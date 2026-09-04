@@ -15,7 +15,8 @@ STAGE=$(mktemp -d)
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 mkdir -p "$STAGE/.background"
-python3 scripts/dmg-background.py "$STAGE/.background/background.png"
+python3 scripts/dmg-background.py "$STAGE/.background/background.png" ||
+  echo "note: background not rendered (Pillow missing?); the DMG keeps the plain window"
 
 # 1. writable image, 2. lay it out with Finder, 3. compress.
 RW=$(mktemp -d)/rw.dmg
