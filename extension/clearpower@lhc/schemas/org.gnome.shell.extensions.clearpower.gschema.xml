@@ -5,11 +5,17 @@
     <value nick="percent" value="1"/>
     <value nick="both" value="2"/>
     <value nick="none" value="3"/>
+    <value nick="runtime" value="4"/>
   </enum>
   <enum id="org.gnome.shell.extensions.clearpower.flow-animation">
     <value nick="always" value="0"/>
     <value nick="on-ac" value="1"/>
     <value nick="never" value="2"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.clearpower.language">
+    <value nick="system" value="0"/>
+    <value nick="en" value="1"/>
+    <value nick="zh-cn" value="2"/>
   </enum>
   <schema id="org.gnome.shell.extensions.clearpower" path="/org/gnome/shell/extensions/clearpower/">
     <key name="flow-animation" enum="org.gnome.shell.extensions.clearpower.flow-animation">
@@ -19,6 +25,19 @@
     <key name="panel-text" enum="org.gnome.shell.extensions.clearpower.panel-text">
       <default>'watts'</default>
       <summary>What to show next to the panel icon</summary>
+    </key>
+    <key name="runtime-window" type="i">
+      <default>30</default>
+      <range min="10" max="60"/>
+      <summary>Averaging window (minutes) for the runtime estimate: 10, 30 or 60</summary>
+    </key>
+    <key name="language" enum="org.gnome.shell.extensions.clearpower.language">
+      <default>'system'</default>
+      <summary>UI language</summary>
+    </key>
+    <key name="content-aware" type="b">
+      <default>true</default>
+      <summary>Sample a tiny screen thumbnail while the popover is open to refine the OLED display estimate</summary>
     </key>
   </schema>
 </schemalist>

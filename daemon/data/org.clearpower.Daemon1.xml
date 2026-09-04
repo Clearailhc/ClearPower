@@ -9,6 +9,7 @@
     <property name="ChargeTarget" type="i" access="read"/>
     <property name="ChargeControlSupported" type="b" access="read"/>
     <property name="DischargeSupported" type="b" access="read"/>
+    <property name="DisplayCalibrated" type="b" access="read"/>
     <method name="SetChargeLimit">
       <arg name="percent" type="i" direction="in"/>
     </method>
@@ -17,6 +18,11 @@
       <arg name="target_percent" type="i" direction="in"/>
     </method>
     <method name="CancelSpecial"/>
+    <method name="CalibrateDisplay"/>
+    <method name="CancelCalibration"/>
+    <method name="SetDisplayContent">
+      <arg name="average_luminance" type="d" direction="in"/>
+    </method>
     <method name="GetTopProcesses">
       <arg name="count" type="i" direction="in"/>
       <arg name="procs" type="a(sdd)" direction="out"/>

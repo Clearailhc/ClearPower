@@ -15,10 +15,14 @@ const IFACE_XML = `
     <property name="ChargeTarget" type="i" access="read"/>
     <property name="ChargeControlSupported" type="b" access="read"/>
     <property name="DischargeSupported" type="b" access="read"/>
+    <property name="DisplayCalibrated" type="b" access="read"/>
     <method name="SetChargeLimit"><arg name="percent" type="i" direction="in"/></method>
     <method name="StartTopUp"/>
     <method name="StartDischarge"><arg name="target_percent" type="i" direction="in"/></method>
     <method name="CancelSpecial"/>
+    <method name="CalibrateDisplay"/>
+    <method name="CancelCalibration"/>
+    <method name="SetDisplayContent"><arg name="average_luminance" type="d" direction="in"/></method>
     <method name="GetTopProcesses">
       <arg name="count" type="i" direction="in"/><arg name="procs" type="a(sdd)" direction="out"/>
     </method>
@@ -114,6 +118,19 @@ export class DaemonClient extends EventEmitter {
 
     async cancelSpecial() {
         await this._proxy.CancelSpecialAsync();
+    }
+
+    async calibrateDisplay() {
+        await this._proxy.CalibrateDisplayAsync();
+    }
+
+    async cancelCalibration() {
+        await this._proxy.CancelCalibrationAsync();
+    }
+
+    /** Average linear screen luminance 0..1, sampled by the shell while the popover is open. */
+    async setDisplayContent(apl) {
+        await this._proxy.SetDisplayContentAsync(apl);
     }
 
     /** [[name, watts, cpuPercent], ...] — computed by the daemon on demand only. */

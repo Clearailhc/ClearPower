@@ -1,6 +1,7 @@
 .clearpower-menu { width: 400px; spacing: 10px; padding: 6px 8px; }
 .clearpower-row { spacing: 8px; }
 .clearpower-pill {
+  color: inherit;
   background-color: rgba(128, 128, 128, 0.16);
   border-radius: 14px; padding: 4px 12px; font-weight: bold;
 }
@@ -14,3 +15,5 @@
 .clearpower-app-row { spacing: 8px; }
 .clearpower-panel-label { padding-left: 4px; font-feature-settings: "tnum"; }
 .clearpower-error { color: #e07a5f; }
+.clearpower-mini { padding: 1px 10px; border-radius: 10px; font-size: 0.85em; }
+.clearpower-pill:hover { background-color: rgba(128, 128, 128, 0.28); }

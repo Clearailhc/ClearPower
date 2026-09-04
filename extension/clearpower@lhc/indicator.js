@@ -7,16 +7,18 @@ import St from 'gi://St';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import * as PopupMenu from 'resource:///org/gnome/shell/ui/popupMenu.js';
-import {Slider} from 'resource:///org/gnome/shell/ui/slider.js';
 
 import {BatteryBar} from './batteryBar.js';
 import {Sankey, fmtW} from './sankey.js';
 import {PROFILES} from './powerProfiles.js';
+import {t, fmtDuration, setLanguage} from './i18n.js';
+import {sampleAverageLuminance} from './content.js';
+import {CalibrationScreen} from './calibrationScreen.js';
 
-const LIMIT_MIN = 50;
+const LIMITS = [80, 90, 100];      // one click cycles through these
+const WINDOWS = [10, 30, 60];      // runtime averaging windows (minutes)
 const APP_MIN_W = 0.5;
-const limitToSlider = l => (l - LIMIT_MIN) / (100 - LIMIT_MIN);
-const sliderToLimit = v => Math.round((LIMIT_MIN + v * (100 - LIMIT_MIN)) / 5) * 5;
+const CONTENT_INTERVAL_S = 5;
 
 export const Indicator = GObject.registerClass(
 class Indicator extends PanelMenu.Button {
@@ -26,13 +28,15 @@ class Indicator extends PanelMenu.Button {
         this._client = client;
         this._profiles = profiles;
         this._settings = settings;
-        this._dragging = false;
-        this._commitTimer = 0;
+        this._appsTimer = 0;
+        this._contentTimer = 0;
+        this._calScreen = new CalibrationScreen(() => this._client.cancelCalibration().catch(e => this._fail(e)));
+        setLanguage(settings.get_string('language'));
 
         const box = new St.BoxLayout({style_class: 'panel-status-menu-box'});
         this._gicon = Gio.icon_new_for_string(`${ext.path}/icons/clearpower-symbolic.svg`);
         this._icon = new St.Icon({gicon: this._gicon, style_class: 'system-status-icon'});
-        this._label = new St.Label({text: '–', y_align: Clutter.ActorAlign.CENTER, style_class: 'clearpower-panel-label'});
+        this._label = new St.Label({text: '', y_align: Clutter.ActorAlign.CENTER, style_class: 'clearpower-panel-label'});
         box.add_child(this._icon);
         box.add_child(this._label);
         this.add_child(box);
@@ -45,11 +49,17 @@ class Indicator extends PanelMenu.Button {
             client.connect('online', () => this._syncOnline()),
         ];
         this._profId = profiles.connect('changed', () => this._syncProfiles());
-        this._settingsId = settings.connect('changed::panel-text', () => this._updatePanel());
-        this._flowId = settings.connect('changed::flow-animation',
-            () => this._sankey.setFlowMode(settings.get_string('flow-animation')));
+        this._settingsIds = [
+            settings.connect('changed::panel-text', () => this._updatePanel()),
+            settings.connect('changed::runtime-window', () => this._refreshRuntime()),
+            settings.connect('changed::flow-animation', () => this._sankey.setFlowMode(settings.get_string('flow-animation'))),
+            settings.connect('changed::content-aware', () => this._syncContentTimer()),
+            settings.connect('changed::language', () => {
+                setLanguage(settings.get_string('language'));
+                this._retext();
+            }),
+        ];
         this._sankey.setFlowMode(settings.get_string('flow-animation'));
-        this._appsTimer = 0;
         this.menu.connect('open-state-changed', (_m, open) => {
             this._sankey.setActive(open);
             if (open) {
@@ -63,6 +73,7 @@ class Indicator extends PanelMenu.Button {
                 GLib.source_remove(this._appsTimer);
                 this._appsTimer = 0;
             }
+            this._syncContentTimer();
         });
         this._syncOnline();
         this._syncState();
@@ -77,11 +88,12 @@ class Indicator extends PanelMenu.Button {
         return item;
     }
 
-    _button(text, iconName, cb) {
+    _button(text, iconName, cb, styleClass = 'button clearpower-btn') {
         const content = new St.BoxLayout({style_class: 'clearpower-row'});
         content.add_child(new St.Label({text, y_align: Clutter.ActorAlign.CENTER}));
-        content.add_child(new St.Icon({icon_name: iconName, icon_size: 16, y_align: Clutter.ActorAlign.CENTER}));
-        const b = new St.Button({style_class: 'button clearpower-btn', child: content});
+        if (iconName)
+            content.add_child(new St.Icon({icon_name: iconName, icon_size: 16, y_align: Clutter.ActorAlign.CENTER}));
+        const b = new St.Button({style_class: styleClass, child: content});
         b._label = content.get_first_child();
         b.connect('clicked', cb);
         return b;
@@ -91,20 +103,21 @@ class Indicator extends PanelMenu.Button {
         this.menu.box.add_style_class_name('clearpower-menu');
 
         this._offline = new St.Label({
-            text: 'ClearPower daemon is not running',
+            text: t('daemonOffline'),
             style_class: 'clearpower-error', x_expand: true, x_align: Clutter.ActorAlign.CENTER,
         });
         this._offlineItem = this._row(this._offline);
 
+        // Header: limit (click cycles 80/90/100), discharge, top-up, settings
         const header = new St.BoxLayout({style_class: 'clearpower-row', x_expand: true});
-        this._pill = new St.Label({text: 'Limit: –', style_class: 'clearpower-pill', y_align: Clutter.ActorAlign.CENTER});
-        header.add_child(this._pill);
+        this._limitBtn = this._button(t('limit', {n: '–'}), null, () => this._cycleLimit(), 'button clearpower-pill');
+        header.add_child(this._limitBtn);
         header.add_child(new St.Widget({x_expand: true}));
-        this._dischargeBtn = this._button('Discharge', 'list-remove-symbolic', () => this._toggleDischarge());
-        this._topupBtn = this._button('Top Up', 'list-add-symbolic', () => this._toggleTopUp());
+        this._dischargeBtn = this._button(t('discharge'), 'list-remove-symbolic', () => this._toggleDischarge());
+        this._topupBtn = this._button(t('topUp'), 'list-add-symbolic', () => this._toggleTopUp());
         this._prefsBtn = new St.Button({
             style_class: 'button clearpower-icon-btn',
-            child: new St.Icon({icon_name: 'view-grid-symbolic', icon_size: 16}),
+            child: new St.Icon({icon_name: 'emblem-system-symbolic', icon_size: 16}),
         });
         this._prefsBtn.connect('clicked', () => {
             this.menu.close();
@@ -115,21 +128,16 @@ class Indicator extends PanelMenu.Button {
         header.add_child(this._prefsBtn);
         this._headerItem = this._row(header);
 
+        // Battery bar + runtime line
         const batBox = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'clearpower-row'});
         this._bar = new BatteryBar();
         batBox.add_child(this._bar);
-        this._slider = new Slider(limitToSlider(this._client.limit));
-        for (let l = LIMIT_MIN; l <= 100; l += 5)
-            this._slider.addMark(limitToSlider(l));
-        this._slider.connect('notify::value', () => this._onSliderValue());
-        this._slider.connect('drag-begin', () => {
-            this._dragging = true;
-        });
-        this._slider.connect('drag-end', () => {
-            this._dragging = false;
-            this._commitLimit();
-        });
-        batBox.add_child(this._slider);
+        const rt = new St.BoxLayout({style_class: 'clearpower-row', x_expand: true});
+        this._runtime = new St.Label({text: '', style_class: 'clearpower-dim', y_align: Clutter.ActorAlign.CENTER, x_expand: true});
+        this._windowBtn = this._button('', null, () => this._cycleWindow(), 'button clearpower-mini');
+        rt.add_child(this._runtime);
+        rt.add_child(this._windowBtn);
+        batBox.add_child(rt);
         this._batItem = this._row(batBox);
 
         this._sankey = new Sankey();
@@ -153,29 +161,26 @@ class Indicator extends PanelMenu.Button {
 
         this._apps = new St.BoxLayout({vertical: true, x_expand: true, style_class: 'clearpower-apps'});
         this._appsItem = this._row(this._apps);
+        this._windowBtn._label.text = this._windowText();
+    }
+
+    _retext() {
+        this._offline.text = t('daemonOffline');
+        this._syncState();
+        this._windowBtn._label.text = this._windowText();
+        this._sankey.invalidate();
+        this._refreshAll();
+        this._pollApps();
+        this._updatePanel();
     }
 
     // ---- charge control -------------------------------------------------
-    _onSliderValue() {
-        const l = sliderToLimit(this._slider.value);
-        this._pill.text = `Limit: ${l}%`;
-        this._bar.update({limit: l});
-        if (this._dragging)
-            return;
-        if (this._commitTimer)
-            GLib.source_remove(this._commitTimer);
-        this._commitTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 500, () => {
-            this._commitTimer = 0;
-            this._commitLimit();
-            return GLib.SOURCE_REMOVE;
-        });
-    }
-
-    _commitLimit() {
-        const l = sliderToLimit(this._slider.value);
-        if (l === this._client.limit)
-            return;
-        this._client.setChargeLimit(l).catch(e => this._fail(e));
+    _cycleLimit() {
+        const cur = this._client.limit;
+        const i = LIMITS.indexOf(cur);
+        const next = LIMITS[(i + 1) % LIMITS.length] ?? LIMITS[0];
+        this._limitBtn._label.text = t('limit', {n: next});
+        this._client.setChargeLimit(next).catch(e => this._fail(e));
     }
 
     _toggleDischarge() {
@@ -192,8 +197,77 @@ class Indicator extends PanelMenu.Button {
 
     _fail(e) {
         console.error(`ClearPower: ${e.message}`);
-        Main.notify('ClearPower', e.message.replace(/^GDBus.Error:[^:]+: /, ''));
+        let msg = e.message.replace(/^GDBus.Error:[^:]+: /, '');
+        if (/NotAuthorized|Permission denied/i.test(e.message))
+            msg = t('errPermission');
+        else if (/not supported/i.test(e.message))
+            msg = t('errUnsupported');
+        Main.notify('ClearPower', msg);
         this._syncState();
+    }
+
+    // ---- runtime window -----------------------------------------------------
+    _window() {
+        const w = this._settings.get_int('runtime-window');
+        return WINDOWS.includes(w) ? w : 30;
+    }
+
+    _windowText() {
+        return t(`win${this._window()}`);
+    }
+
+    _cycleWindow() {
+        const i = WINDOWS.indexOf(this._window());
+        this._settings.set_int('runtime-window', WINDOWS[(i + 1) % WINDOWS.length]);
+        this._windowBtn._label.text = this._windowText();
+    }
+
+    _refreshRuntime(snap = this._client.snapshot) {
+        this._windowBtn._label.text = this._windowText();
+        if (!snap)
+            return;
+        const w = this._window();
+        let text = '';
+        if (snap.calib_state === 'running') {
+            text = t('calibrating', {p: Math.round((snap.calib_progress ?? 0) * 100)});
+        } else if (snap.bat_status === 'Discharging') {
+            const m = snap[`runtime_min_${w}`] ?? -1;
+            text = m > 0 ? ((snap.runtime_basis_s ?? 0) < 300 ? '~' : '') + t('remaining', {t: fmtDuration(m)}) : t('estimating');
+        } else if (snap.bat_status === 'Charging') {
+            const m = snap[`eta_min_${w}`] ?? -1;
+            text = m > 0 ? t('toLimit', {t: fmtDuration(m), n: this._client.limit}) : t('charging');
+        } else if (snap.on_ac) {
+            text = (snap.bat_pct ?? 0) >= this._client.limit - 1 ? t('atLimit') : t('pluggedIn');
+        }
+        this._runtime.text = text;
+        this._windowBtn.visible = snap.bat_status === 'Discharging' || snap.bat_status === 'Charging';
+    }
+
+    // ---- screen content sampling (OLED display estimate) --------------------
+    _contentWanted() {
+        if (!this._client.online || !this._settings.get_boolean('content-aware'))
+            return false;
+        return this.menu.isOpen || this._client.snapshot?.calib_state === 'running';
+    }
+
+    _syncContentTimer() {
+        const want = this._contentWanted();
+        if (want && !this._contentTimer) {
+            this._sampleContent();
+            this._contentTimer = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, CONTENT_INTERVAL_S, () => {
+                this._sampleContent();
+                return GLib.SOURCE_CONTINUE;
+            });
+        } else if (!want && this._contentTimer) {
+            GLib.source_remove(this._contentTimer);
+            this._contentTimer = 0;
+        }
+    }
+
+    _sampleContent() {
+        sampleAverageLuminance()
+            .then(apl => (apl >= 0 ? this._client.setDisplayContent(apl) : null))
+            .catch(e => console.error(`ClearPower: content sample: ${e.message}`));
     }
 
     // ---- sync -------------------------------------------------------------
@@ -205,22 +279,23 @@ class Indicator extends PanelMenu.Button {
         if (on)
             this._syncState();
         this._updatePanel();
+        this._syncContentTimer();
     }
 
     _syncState() {
         const c = this._client;
-        if (!this._dragging && !this._commitTimer)
-            this._slider.value = limitToSlider(c.limit);
-        this._pill.text = `Limit: ${c.limit}%`;
+        this._limitBtn._label.text = t('limit', {n: c.limit});
+        this._limitBtn.reactive = c.mode === 'limit' && c.controlSupported;
+        this._limitBtn.opacity = this._limitBtn.reactive ? 255 : 150;
         this._bar.update({limit: c.limit, mode: c.mode});
-        this._batItem.visible = c.online && c.controlSupported;
+        this._batItem.visible = c.online;
         this._dischargeBtn.visible = c.dischargeSupported;
         const setChecked = (b, on) => on ? b.add_style_pseudo_class('checked') : b.remove_style_pseudo_class('checked');
         setChecked(this._dischargeBtn, c.mode === 'discharge');
         setChecked(this._topupBtn, c.mode === 'topup');
-        this._dischargeBtn._label.text = c.mode === 'discharge' ? `Discharging → ${c.target}%` : 'Discharge';
-        this._topupBtn._label.text = c.mode === 'topup' ? 'Topping up…' : 'Top Up';
-        this._slider.reactive = c.mode === 'limit';
+        this._dischargeBtn._label.text = c.mode === 'discharge' ? t('dischargingTo', {n: c.target}) : t('discharge');
+        this._topupBtn._label.text = c.mode === 'topup' ? t('toppingUp') : t('topUp');
+        this._refreshRuntime();
     }
 
     _syncProfiles() {
@@ -238,6 +313,17 @@ class Indicator extends PanelMenu.Button {
         this._updatePanel();
         if (this.menu.isOpen)
             this._refreshAll(snap);
+        const running = snap.calib_state === 'running';
+        if (running) {
+            if (this.menu.isOpen)
+                this.menu.close();
+            this._calScreen.show();
+            this._calScreen.update(snap.calib_progress ?? 0);
+        } else {
+            this._calScreen.hide();
+        }
+        if (running !== !!this._contentTimer)
+            this._syncContentTimer();
     }
 
     _refreshAll(snap = this._client.snapshot) {
@@ -245,6 +331,7 @@ class Indicator extends PanelMenu.Button {
             return;
         this._bar.update({pct: snap.bat_pct ?? 0, status: snap.bat_status ?? '', onAc: !!snap.on_ac});
         this._sankey.update(snap);
+        this._refreshRuntime(snap);
         const parts = [];
         if (snap.temp_cpu >= 0)
             parts.push(`CPU ${Math.round(snap.temp_cpu)}°`);
@@ -258,6 +345,8 @@ class Indicator extends PanelMenu.Button {
     }
 
     _pollApps() {
+        if (!this._client.online)
+            return;
         this._client.getTopProcesses(3)
             .then(procs => this._refreshApps(procs))
             .catch(e => console.error(`ClearPower: GetTopProcesses: ${e.message}`));
@@ -268,7 +357,7 @@ class Indicator extends PanelMenu.Button {
         const sig = procs.filter(([, w]) => w >= APP_MIN_W);
         if (sig.length === 0) {
             this._apps.add_child(new St.Label({
-                text: 'No Apps Using Significant Energy', x_expand: true,
+                text: t('noApps'), x_expand: true,
                 x_align: Clutter.ActorAlign.CENTER, style_class: 'clearpower-dim',
             }));
             return;
@@ -295,7 +384,13 @@ class Indicator extends PanelMenu.Button {
         const mode = this._settings.get_string('panel-text');
         const w = fmtW(snap.sys_w, 1);
         const p = `${snap.bat_pct ?? 0}%`;
-        const text = {watts: w, percent: p, both: `${w} · ${p}`, none: ''}[mode] ?? w;
+        let rt = p;
+        if (snap.bat_status === 'Discharging') {
+            const m = snap[`runtime_min_${this._window()}`] ?? -1;
+            if (m > 0)
+                rt = fmtDuration(m);
+        }
+        const text = {watts: w, percent: p, both: `${w} · ${p}`, runtime: rt, none: ''}[mode] ?? w;
         if (this._label.text !== text) {
             this._label.text = text;
             this._label.visible = text !== '';
@@ -303,15 +398,16 @@ class Indicator extends PanelMenu.Button {
     }
 
     destroy() {
-        if (this._commitTimer)
-            GLib.source_remove(this._commitTimer);
+        this._calScreen.hide();
         if (this._appsTimer)
             GLib.source_remove(this._appsTimer);
+        if (this._contentTimer)
+            GLib.source_remove(this._contentTimer);
         for (const id of this._clientIds)
             this._client.disconnect(id);
         this._profiles.disconnect(this._profId);
-        this._settings.disconnect(this._settingsId);
-        this._settings.disconnect(this._flowId);
+        for (const id of this._settingsIds)
+            this._settings.disconnect(id);
         super.destroy();
     }
 });

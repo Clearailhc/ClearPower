@@ -6,9 +6,11 @@ AlDente-style battery charge control and live power-flow monitor for Linux
 laptops. Tested on a ThinkPad X14 Gen 1 with Ubuntu 26.04 / GNOME Shell 50.
 
 * **Top-bar indicator** with live system power draw. The popover has the
-  charge-limit slider, Discharge / Top Up, a battery bar, an animated power-flow
-  diagram (adapter/battery → system → SoC / display / other), the power-profile
-  switcher, temperatures and fans, and the apps using significant energy.
+  charge limit (80/90/100 %), Discharge / Top Up, a battery bar with a windowed
+  runtime estimate, an animated power-flow diagram (adapter/battery → system →
+  CPU / GPU / SoC / memory / display / other), the power-profile switcher,
+  temperatures and fans, and the apps using significant energy. English and
+  Chinese UI.
 * **`clearpowerd`**, a small root daemon (systemd + D-Bus + polkit) that
   samples sysfs and Intel RAPL at 1 Hz and owns the charge-control state
   machine, so limits, top-ups and discharges keep working while the popover is
@@ -21,7 +23,7 @@ Download `clearpower_<version>_all.deb` from the releases page, or build it from
 this checkout, then:
 
 ```bash
-sudo apt install ./dist/clearpower_0.1.0_all.deb
+sudo apt install ./dist/clearpower_0.2.0_all.deb
 ```
 
 Log out and back in once. The indicator is enabled automatically at login; the
@@ -76,13 +78,42 @@ journalctl -u clearpowerd -f
 
 ## Charge control semantics
 
-* **Limit L** (50–100 %, step 5): `charge_control_end_threshold = L`,
+* **Limit** cycles 80 → 90 → 100 % with one click: `charge_control_end_threshold = L`,
   `start = L-5`, `charge_behaviour = auto`.
 * **Top Up**: thresholds temporarily 95/100 until the battery reports Full,
   then the limit is restored.
 * **Discharge**: `charge_behaviour = force-discharge` until the battery reaches
   the limit (never below 20 %), then `auto`.
 * Special modes never survive a daemon restart; SIGTERM restores `auto`.
+
+## How the numbers are made
+
+Every watt shown is measured or derived by subtraction, so the parts always add up:
+
+| Node | Source |
+|---|---|
+| System | battery `power_now` on battery (physical truth); Intel RAPL `psys` on AC |
+| CPU / GPU / SoC / Memory | RAPL `core`, `uncore`, `package − core − uncore`, `dram` |
+| Display | calibrated emission curve × live screen content (see below); hidden until calibrated |
+| Other | whatever is left (`System − SoC − Memory − Display`): NVMe, Wi-Fi, USB, panel electronics |
+
+Sinks under 0.1 W are folded into *Other* and hidden. All inputs are smoothed with a
+5 s exponential average before the breakdown; the popover shows one decimal.
+
+**Display power (OLED-aware).** There is no panel power sensor, but brightness is a
+knob we control and `psys − package − dram` is a measured truth. *Calibrate display*
+turns the screen white and sweeps brightness through 0/1/10/25/50/75/100 % while
+the daemon records that residual (~45 s). The result is the panel's emission curve
+for a fully lit picture. At runtime the extension samples a ~50×30 px thumbnail of
+the screen every 5 s while the popover is open (a single average luminance; nothing
+is stored) and scales the curve by content, because OLED pixels only draw power when
+lit. Level 0 % measures the panel electronics, which stay in *Other*.
+
+**Runtime estimate.** The battery's own energy counter is differenced over the
+selected window (10 min / 30 min / 1 h) within the current discharge segment:
+`avg_w = ΔE/Δt`, `time = E_now / avg_w`. This integrates everything the machine
+drew and moves only as fast as the window, unlike UPower's instantaneous estimate.
+Charging shows the time to reach the current limit the same way.
 
 ## Development
 
@@ -99,7 +130,7 @@ unsafe mode so `org.gnome.Shell.Eval` and screenshots work — handy together wi
 `dbus-run-session`.
 
 Optional daemon config: `/etc/clearpower/config.json` (keys and defaults in
-`daemon/clearpowerd/config.py`, e.g. `display_p_min_w` / `display_p_max_w`).
+`daemon/clearpowerd/config.py`, e.g. `smoothing_s`, `idle_interval_ms`).
 
 ## License
 

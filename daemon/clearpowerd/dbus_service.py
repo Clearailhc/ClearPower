@@ -32,8 +32,10 @@ def snapshot_variant(snap):
 
 
 class Service:
-    def __init__(self, sampler, charge, history, bus_type=Gio.BusType.SYSTEM, insecure=False):
+    def __init__(self, sampler, charge, history, bus_type=Gio.BusType.SYSTEM, insecure=False,
+                 display_cal=None):
         self.sampler = sampler
+        self.display_cal = display_cal
         self.charge = charge
         self.history = history
         self.insecure = insecure  # skip polkit (session-bus dev mode only)
@@ -70,6 +72,7 @@ class Service:
             "ChargeTarget": GLib.Variant("i", st["charge_target"]),
             "ChargeControlSupported": GLib.Variant("b", self.charge.supported),
             "DischargeSupported": GLib.Variant("b", "force-discharge" in self.charge.behaviours),
+            "DisplayCalibrated": GLib.Variant("b", bool(self.display_cal and self.display_cal.calibrated)),
         }
 
     def _on_get_property(self, conn, sender, path, iface, prop):
@@ -93,7 +96,15 @@ class Service:
 
     # ---- methods -------------------------------------------------------
     def _on_method(self, conn, sender, path, iface, method, params, invocation):
-        if method in ("SetChargeLimit", "StartTopUp", "StartDischarge", "CancelSpecial"):
+        if method == "SetDisplayContent":
+            import time
+            self.last_client_activity = time.monotonic()
+            if self.display_cal:
+                self.display_cal.set_content(params.unpack()[0], time.monotonic())
+            invocation.return_value(None)
+            return
+        if method in ("SetChargeLimit", "StartTopUp", "StartDischarge", "CancelSpecial",
+                      "CalibrateDisplay", "CancelCalibration"):
             def go(ok, err):
                 if not ok:
                     invocation.return_dbus_error(ERR_NOAUTH, err or "Not authorized")
@@ -105,6 +116,13 @@ class Service:
                         self.charge.start_topup()
                     elif method == "StartDischarge":
                         self.charge.start_discharge(params.unpack()[0])
+                    elif method == "CalibrateDisplay":
+                        import time
+                        self.display_cal.start(time.monotonic(), self.sampler.rapl.available)
+                        if self.display_cal.state == "failed":
+                            raise OSError(95, self.display_cal.message)
+                    elif method == "CancelCalibration":
+                        self.display_cal.cancel()
                     else:
                         self.charge.cancel()
                     log.info("%s%s by %s -> %s", method, params.unpack(), sender, self.charge.state())
