@@ -3,7 +3,7 @@
 </p>
 <h1 align="center">ClearPower</h1>
 <p align="center">
-  <strong>Battery charge limit and an honest, live power-flow view for laptops.</strong><br>
+  <strong>Battery charge limit and a live power breakdown for laptops.</strong><br>
   Linux · macOS · Windows &nbsp;—&nbsp; the same popover on all three.
 </p>
 <p align="center">
@@ -21,16 +21,16 @@
   <img src="docs/popover-windows.png" width="330" alt="ClearPower on Windows">
 </p>
 
-ClearPower keeps your battery at 80 % (or whatever you choose) and shows where every watt goes — adapter or battery → system → CPU · GPU · SoC · memory · display · other — with numbers that are either **measured or derived by subtraction**, so the parts always add up to the whole. Inspired by [AlDente](https://apphousekitchen.com/) on macOS, built for laptops that spend their life on a desk.
+ClearPower stops charging at 80 % (or wherever you set the limit) and shows where every watt goes: adapter or battery → system → CPU · GPU · SoC · memory · display · other. Every number is either **measured by a sensor or derived by subtraction**, so the parts add up to the total. Built for laptops that stay plugged in; inspired by [AlDente](https://apphousekitchen.com/) on macOS.
 
 ## Features
 
-- **Charge limit** — click to cycle 80 / 90 / 100 %, or any value 50–100 in settings. **Top Up** to 100 % once; **Discharge** to the limit (where the firmware allows); both revert automatically.
-- **Power flow that adds up** — a live Sankey diagram from real sensors: Intel RAPL / Apple's energy counters for the chip, the battery's own gauge for the whole machine. Nothing is modelled.
-- **Real display power** — a one-time calibration (white screen + brightness sweep) gives your panel its own curve, scaled by the live screen content. On OLED a white page can cost 7 W and a dark desktop 0.4 W; ClearPower shows it.
-- **Runtime estimate** from the battery's energy counter over a 10 min / 30 min / 1 h window, steadier than the OS guess.
-- **Power modes, temperatures, fans and the apps using significant energy**, in the same popover.
-- **Light** — one small process, sampling slows down when nobody is looking, the diagram animates only while open.
+- **Charge limit** — click to cycle 80 / 90 / 100 %, or pick any value 50–100 in settings. **Top Up** charges to 100 % once; **Discharge** drains down to the limit where the firmware allows it. Both restore the previous limit when they finish.
+- **Power breakdown** — a live Sankey diagram fed by sensors: Intel RAPL or Apple's energy counters for the chip, the battery's own gauge for the whole machine. Nothing is modelled, and the parts add up to the total.
+- **Display power, measured separately** — a one-time calibration (white screen and a brightness sweep) gives your panel its own curve, then scales it by what is actually on screen. On the same OLED, a full white page can cost 7 W and a dark interface 0.4 W.
+- **Runtime estimate** from the battery's energy counter over a 10 min / 30 min / 1 h window, steadier than the OS estimate.
+- **Power modes, temperatures, fans and the apps drawing noticeable power**, in the same popover.
+- **Small footprint** — one small process; while the popover is closed it samples less often and stops drawing the diagram.
 - English and Chinese UI, light and dark themes.
 
 ## Install
@@ -38,10 +38,10 @@ ClearPower keeps your battery at 80 % (or whatever you choose) and shows where e
 | Platform | Get it | Notes |
 |---|---|---|
 | **Windows 11** (x64) | [`ClearPower-Setup-<v>-x64.exe`](https://github.com/Clearailhc/ClearPower/releases/latest) or the portable zip | Per-user install, no admin, no runtime to download (a single 200 KB exe). Charge control on ThinkPads via the Lenovo driver. → [windows/README.md](windows/README.md) |
-| **macOS** (Apple Silicon) | [`ClearPower-<v>-arm64.dmg`](https://github.com/Clearailhc/ClearPower/releases/latest) | macOS 14+. A small privileged helper (one admin prompt) owns charge control. → [macos/README.md](macos/README.md) |
+| **macOS** (Apple Silicon) | [`ClearPower-<v>-arm64.dmg`](https://github.com/Clearailhc/ClearPower/releases/latest) | macOS 14+. Charge control runs in a small privileged helper; installing it prompts for an admin password once. → [macos/README.md](macos/README.md) |
 | **Linux** (GNOME 48–50) | [`clearpower_<v>_all.deb`](https://github.com/Clearailhc/ClearPower/releases/latest) or `./install.sh` | Root daemon + GNOME Shell extension. → [docs/linux.md](docs/linux.md) |
 
-After installing, open **Settings › Calibrate** once so the display gets its own number instead of being lumped into "other" (Windows: unplug first — the battery is the whole-machine sensor there).
+After installing, run **Settings › Calibrate** once so the display gets its own number instead of being folded into "other". On Windows, unplug first: the whole machine can only be measured on battery there.
 
 Every release ships all three packages together, with a `SHA256SUMS` file.
 
@@ -49,12 +49,12 @@ Every release ships all three packages together, with a `SHA256SUMS` file.
 
 | Quantity | Linux | macOS | Windows |
 |---|---|---|---|
-| Whole machine | battery gauge on battery, RAPL `psys` on AC | battery gauge on battery, SMC `PSTR` on AC | battery gauge on battery; on AC an estimate (≈) |
+| Whole machine | battery gauge on battery, RAPL `psys` on AC | battery gauge on battery, SMC `PSTR` on AC | battery gauge on battery; an estimate (≈) on AC |
 | CPU / GPU / memory | RAPL `core` / `uncore` / `dram` | IOReport `CPU Energy` / `GPU Energy` / `DRAM` | Energy Meter `PP0` / `PP1` / `DRAM` |
 | SoC (fabric, NPU, media…) | `package` − CPU − GPU | everything else on the die | `PKG` − PP0 − PP1 |
-| Display | calibration table × brightness × screen content | same | same |
+| Display | calibration curve × brightness × screen content | same | same |
 | Other (SSD, Wi-Fi, USB…) | total − everything above | same | same |
-| Charge thresholds | `charge_control_*_threshold` (sysfs) | SMC keys, enforced by the helper | Lenovo Power Manager (EC) |
+| Charge thresholds | `charge_control_*_threshold` (sysfs) | SMC keys, written by the helper | Lenovo Power Manager (EC) |
 
 All watt values pass a 5 s smoother before display. Per-platform details and hardware support tables live in the platform READMEs.
 
@@ -66,7 +66,7 @@ All watt values pass a 5 s smoother before display. Per-platform details and har
 | macOS | Apple Silicon | all Apple Silicon Macs | yes |
 | Windows | Intel (Windows 11 Energy Meter Interface) | ThinkPad (Lenovo Power Manager driver) | – |
 
-Contributions for AMD RAPL, other vendors' charge interfaces and Windows sensor drivers are very welcome — see [Contributing](#contributing).
+AMD RAPL, other vendors' charge interfaces and Windows sensor drivers are not done yet; PRs welcome — see [Contributing](#contributing).
 
 ## Repository layout
 
@@ -79,14 +79,14 @@ docs/            per-platform notes, release notes, screenshots
 packaging/       systemd unit, D-Bus policy, polkit action, desktop entries, deb scripts
 ```
 
-Every port produces the same `Snapshot` dictionary (same keys, same units, `-1` = unknown) and is checked against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`, fixtures shared by the Swift and C# ports). A new platform only needs a backend that fills that dictionary.
+All three ports produce the same `Snapshot` dictionary (same keys, same units, `-1` = unknown) and are checked value by value against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`, fixtures shared by the Swift and C# ports). A new platform only needs a backend that fills that dictionary.
 
 ## Contributing
 
-Issues and pull requests are welcome: RAPL on AMD, charge-threshold interfaces of other vendors (Linux and Windows), translations (one dictionary per platform, same keys), and frontends for other desktops. Two rules shape the project:
+Issues and pull requests are welcome: RAPL on AMD, charge-threshold interfaces of other vendors (Linux and Windows), translations (one dictionary per platform, same keys), and frontends for other desktops. Two rules:
 
-1. every number shown is measured or derived from measurements — no models, no guesses without a ≈;
-2. nothing runs when nobody is looking.
+1. every number shown is measured or derived from measurements — no modelling, and anything estimated is marked ≈;
+2. no extra sampling while the popover is closed.
 
 Roadmap: Windows charge control beyond Lenovo and a signed sensor driver for temperatures; macOS notarization and SMAppService; AMD RAPL on Linux.
 
