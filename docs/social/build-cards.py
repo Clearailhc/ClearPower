@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
-"""Emit the ClearPower cards (1080x1440) as HTML and screenshot them with Playwright."""
+"""Render the six social cards (1080x1440 @2x) into this directory.
+
+    pip install playwright && playwright install chromium
+    CARD_FONTS=/path/to/noto-sans-sc python3 build-cards.py
+
+CARD_FONTS points at a directory with a noto.css @font-face sheet and its woff2 files
+(the Google Fonts CSS for Noto Sans SC, URLs rewritten to local paths)."""
 import base64, pathlib
 from playwright.sync_api import sync_playwright
 
-HERE = pathlib.Path(__file__).parent
-REPO = pathlib.Path("/home/user/ClearPower")
-FONTS = (HERE.parent / "fonts").resolve()
-OUT = HERE / "out"; OUT.mkdir(exist_ok=True)
+HERE = pathlib.Path(__file__).parent          # docs/social
+REPO = HERE.parent.parent
+FONTS = pathlib.Path(__import__("os").environ.get("CARD_FONTS", HERE / "fonts")).resolve()  # a dir with noto.css + woff2
+OUT = HERE
 
 def b64(p): return base64.b64encode(pathlib.Path(p).read_bytes()).decode()
 SHOT_LINUX = b64(REPO / "docs/popover.png")
@@ -58,52 +64,30 @@ def page(body, title, kicker=None, n=None):
 
 cards = {}
 
-# 1 ── cover: the question the reader already has ─────────────────────────
+# 1 ── cover: battery health, the reason anyone installs this ──────────────
 cards["1-cover"] = f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">{CSS}
 <style>
 .hero {{ display:flex; align-items:center; gap:18px; margin-bottom:44px }}
 .hero svg {{ width:72px; height:72px }}
 .hero .name {{ font-size:44px; font-weight:900 }}
-.hero .free {{ margin-left:auto; font-size:26px; color:var(--ink3) }}
-h1 {{ font-size:100px }}
-.shots {{ position:absolute; left:0; right:0; bottom:120px; height:600px }}
-.shot {{ position:absolute; right:60px; bottom:0; width:440px; border-radius:26px; box-shadow:0 40px 90px rgba(0,0,0,.6); border:1.5px solid var(--line); transform:rotate(-2deg); overflow:hidden }}
+.hero .oss {{ margin-left:auto; font-size:26px; color:var(--ink3) }}
+h1 {{ font-size:88px }}
+.shots {{ position:absolute; left:0; right:0; bottom:120px; height:580px }}
+.shot {{ position:absolute; right:60px; bottom:0; width:430px; border-radius:26px; box-shadow:0 40px 90px rgba(0,0,0,.6); border:1.5px solid var(--line); transform:rotate(-2deg); overflow:hidden }}
 .shot img {{ display:block; width:104%; margin:-2% }}
-.shot2 {{ position:absolute; left:70px; bottom:40px; width:430px; border-radius:22px; box-shadow:0 30px 70px rgba(0,0,0,.6); border:1.5px solid var(--line); transform:rotate(3deg); overflow:hidden }}
+.shot2 {{ position:absolute; left:70px; bottom:40px; width:420px; border-radius:22px; box-shadow:0 30px 70px rgba(0,0,0,.6); border:1.5px solid var(--line); transform:rotate(3deg); overflow:hidden }}
 .shot2 img {{ display:block; width:100% }}
 </style></head><body><div class="page">
-  <div class="hero">{ICON}<div class="name">ClearPower</div><div class="free">免费 · 开源</div></div>
-  <h1>笔记本一直<br>插着电用？</h1>
-  <div style="font-size:46px;font-weight:500;margin-top:30px">让它充到 <span style="color:var(--accent);font-weight:900">80%</span> 就停。</div>
-  <div style="display:flex;gap:16px;margin-top:40px">
-    <span class="pill">Linux</span><span class="pill">macOS</span><span class="pill">Windows</span>
-  </div>
+  <div class="hero">{ICON}<div class="name">ClearPower</div><div class="oss">开源项目</div></div>
+  <h1>笔记本一直插着电，<br>电池老得最快。</h1>
+  <div class="sub" style="color:var(--ink)">ClearPower 让它充到 <span style="color:var(--accent);font-weight:900">80%</span> 就停，Linux、macOS、Windows 都能用。</div>
   <div class="shots"><div class="shot2"><img src="data:image/png;base64,{SHOT_WIN}"></div><div class="shot"><img src="data:image/png;base64,{SHOT_LINUX}"></div></div>
   <div class="grow"></div>
   <div class="foot"><span>github.com/Clearailhc/ClearPower</span><span></span></div>
 </div></body></html>"""
 
-# 2 ── the number ──────────────────────────────────────────────────────────
-def bar(label, pct, value):
-    return f"""
-  <div style="display:flex;align-items:center;gap:26px">
-    <div style="width:220px;font-size:34px;font-weight:700">{label}</div>
-    <div style="flex:1;height:72px;background:var(--card2);border-radius:16px;overflow:hidden"><div style="width:{pct}%;height:100%;background:var(--scr);border-radius:16px"></div></div>
-    <div style="width:250px;text-align:right;font-size:92px;white-space:nowrap" class="num">{value} <span style="font-size:40px;color:var(--ink2);font-weight:700">W</span></div>
-  </div>"""
-
-cards["2-number"] = page(f"""
-<div style="margin-top:70px;display:flex;flex-direction:column;gap:30px">
-  {bar("白底网页", 100, "7")}
-  {bar("深色桌面", 5.7, "0.4")}
-</div>
-<div style="font-size:128px;font-weight:900;line-height:1;letter-spacing:-.02em;margin-top:110px">差 17 倍。</div>
-<div class="sub" style="margin-top:28px">这个数系统不会告诉你。<br>ClearPower 会把屏幕单独算出来。</div>
-<div class="grow"></div>
-""", "同一块 OLED 屏，<br>同样的亮度。", kicker="屏幕才是耗电大户", n=2)
-
-# 3 ── charge control ──────────────────────────────────────────────────────
-cards["3-charge"] = page(f"""
+# 2 ── set it once, stop thinking about it ─────────────────────────────────
+cards["2-charge"] = page(f"""
 <div class="box" style="margin-top:44px;background:#1b1d22;padding:24px 30px">
   <div style="display:flex;align-items:center;gap:18px">
     <span style="background:#2d3038;border-radius:16px;padding:14px 26px;font-size:32px;font-weight:700">上限 80%</span>
@@ -120,14 +104,32 @@ cards["3-charge"] = page(f"""
   <div style="margin-top:14px;font-size:26px;color:var(--ink2)">已到上限 · 外接供电</div>
 </div>
 <div class="box" style="padding:20px 38px;margin-top:28px">
-  <div class="item"><b>上限</b><p>80、90、100 点一下换一档，设置里 50 到 100 任选。</p></div>
-  <div class="item"><b>补满</b><p>出门前点一下，充到 100%。回来自动恢复上限。</p></div>
-  <div class="item"><b>放电</b><p>已经充到 95% 了？直接放回 80%，不用等它自己掉。ThinkPad 和 Mac 支持。</p></div>
+  <div class="item"><b>上限</b><p>点一下在 80、90、100 之间切换，设置里 50 到 100 都可以选。</p></div>
+  <div class="item"><b>补满</b><p>出门前点一下，充到 100%，回来自动恢复上限。</p></div>
+  <div class="item"><b>放电</b><p>电池已经充到 95% 了？直接放回上限，不用等它自己慢慢掉。ThinkPad 和 Mac 支持。</p></div>
 </div>
 <div class="grow"></div>
-""", "点一下，<span class=\"ac\">80%</span>。<br>要出门，点补满。", n=3)
+""", "设好上限，<br>电池的事就不用再管了。", n=2)
 
-# 4 ── the flow diagram ────────────────────────────────────────────────────
+# 3 ── battery life: the screen number, framed as something you can act on ─
+def bar(label, pct, value):
+    return f"""
+  <div style="display:flex;align-items:center;gap:26px">
+    <div style="width:220px;font-size:34px;font-weight:700">{label}</div>
+    <div style="flex:1;height:72px;background:var(--card2);border-radius:16px;overflow:hidden"><div style="width:{pct}%;height:100%;background:var(--scr);border-radius:16px"></div></div>
+    <div style="width:250px;text-align:right;font-size:92px;white-space:nowrap" class="num">{value} <span style="font-size:40px;color:var(--ink2);font-weight:700">W</span></div>
+  </div>"""
+
+cards["3-screen"] = page(f"""
+<div style="margin-top:60px;display:flex;flex-direction:column;gap:30px">
+  {bar("白底网页", 100, "7")}
+  {bar("深色桌面", 5.7, "0.4")}
+</div>
+<div class="sub" style="margin-top:70px">同一块屏、同样的亮度，差别只在画面是白底还是深色。这个数系统里看不到，ClearPower 把屏幕单独算了出来，校准一次就行。</div>
+<div class="grow"></div>
+""", "<span style=\"font-size:74px\">换个深色主题，<br>屏幕功耗从 7 W 降到 <span style=\"white-space:nowrap\">0.4 W</span>。</span>", kicker="OLED 笔记本想多用一会儿？先看屏幕", n=3)
+
+# 4 ── seeing where the power goes ─────────────────────────────────────────
 def sankey():
     sinks = [("cpu","CPU","2.5 W"),("gpu","GPU","0.2 W"),("soc","SoC","1.8 W"),
              ("mem","内存","0.5 W"),("scr","屏幕","≈1.0 W"),("oth","其他","2.0 W")]
@@ -160,22 +162,21 @@ def sankey():
 
 cards["4-flow"] = page(f"""
 <div style="margin-top:40px">{sankey()}</div>
+<div class="sub" style="margin-top:30px">CPU、显卡、内存、屏幕各吃多少一目了然。数字都是传感器测出来的，六项加起来正好是整机的 8 W，没有估的。</div>
 <div class="grow"></div>
-<div class="sub">CPU、显卡、内存、屏幕，各吃多少一眼看清。<br>不是估的，六项加起来正好是整机。</div>
-""", "每一瓦去了哪，<br>一张图。", n=4)
+""", "每一瓦去了哪，<br>一张图就看清了。", n=4)
 
-# 5 ── how the screen number is made ───────────────────────────────────────
-cards["5-calib"] = page(f"""
+# 5 ── runtime estimate, and staying out of the way ────────────────────────
+cards["5-runtime"] = page(f"""
 <div class="box" style="margin-top:44px;padding:20px 38px">
-  <div class="item"><b style="color:var(--accent)">1</b><p>屏幕铺一张全白，从最暗扫到最亮。</p></div>
-  <div class="item"><b style="color:var(--accent)">2</b><p>整机功耗跟着变了多少，就是这块面板的曲线。</p></div>
-  <div class="item"><b style="color:var(--accent)">3</b><p>之后按你屏幕上的实际画面算。OLED 是一个像素一个像素亮的，深色就是省。</p></div>
+  <div class="item"><b>续航</b><p>按电池最近 10 分钟、30 分钟、1 小时的实际耗电算，不会一会儿显示 2 小时、一会儿 6 小时。</p></div>
+  <div class="item"><b>状态</b><p>温度、风扇、电源模式、哪个应用在耗电，都在同一个弹窗里。</p></div>
+  <div class="item"><b>后台</b><p>弹窗关着的时候降低采样频率，也不画图，自己不当耗电大户。</p></div>
 </div>
-<div class="sub" style="margin-top:44px">屏幕没有功耗传感器，厂商也不给曲线。所以要你做一次，一次就够。</div>
 <div class="grow"></div>
-""", "校准一次，<br>屏幕就有自己的数。", kicker="7 W 和 0.4 W 是怎么测出来的", n=5)
+""", "还能用多久算得稳，<br>平时也不碍事。", n=5)
 
-# 6 ── download ────────────────────────────────────────────────────────────
+# 6 ── three platforms, one open-source project ────────────────────────────
 def f(name, tag): return f'<div class="box" style="padding:20px 30px;font-size:28px;display:flex;justify-content:space-between"><span class="mono">{name}</span><span class="tag">{tag}</span></div>'
 cards["6-download"] = page(f"""
 <div style="display:flex;flex-direction:column;gap:12px;margin-top:44px">
@@ -184,20 +185,22 @@ cards["6-download"] = page(f"""
   {f("ClearPower-Setup-0.5.1-x64.exe","Windows 11")}
   {f("ClearPower-0.5.1-x64-portable.zip","Windows · 免安装")}
 </div>
-<div class="tag" style="font-size:26px;line-height:1.7;margin-top:40px">功耗图要 Intel 或 Apple 芯片；充电上限目前支持 ThinkPad 和 Apple Silicon Mac。</div>
+<div class="tag" style="font-size:26px;line-height:1.7;margin-top:40px">功耗分解需要 Intel 或 Apple 芯片，充电上限目前支持 ThinkPad 和 Apple Silicon Mac。Apache-2.0，欢迎提 issue 和 PR。</div>
 <div style="margin-top:36px;font-size:36px;font-weight:900;color:var(--accent)">github.com/Clearailhc/ClearPower</div>
 <div class="grow"></div>
-""", "三个平台，<br>都免费。", n=6)
+""", "三个平台，<br>同一个开源项目。", n=6)
 
+import tempfile
+TMP = pathlib.Path(tempfile.mkdtemp())
 for name, html in cards.items():
-    (HERE / f"{name}.html").write_text(html)
+    (TMP / f"{name}.html").write_text(html)
 
 with sync_playwright() as p:
-    b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium-1194/chrome-linux/chrome", args=["--no-sandbox"])
+    b = p.chromium.launch(args=["--no-sandbox"])
     ctx = b.new_context(viewport={"width":1080,"height":1440}, device_scale_factor=2)
     pg = ctx.new_page()
     for name in cards:
-        pg.goto(f"file://{HERE}/{name}.html"); pg.wait_for_timeout(600)
+        pg.goto(f"file://{TMP}/{name}.html"); pg.wait_for_timeout(600)
         pg.screenshot(path=str(OUT / f"{name}.png"))
         print("wrote", name)
     b.close()
