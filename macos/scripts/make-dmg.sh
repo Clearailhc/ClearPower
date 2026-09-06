@@ -18,11 +18,16 @@ mkdir -p "$STAGE/.background"
 python3 scripts/dmg-background.py "$STAGE/.background/background.png" ||
   echo "note: background not rendered (Pillow missing?); the DMG keeps the plain window"
 
+# hdiutil on shared build machines occasionally fails with "Resource busy" (exit 16) while
+# diskimages-helper is still tearing down a previous image; a short retry is enough.
+retry() { local n; for n in 1 2 3 4 5; do "$@" && return 0; echo "note: '$1' failed (attempt $n), retrying" >&2; sleep 5; done; "$@"; }
+
 # 1. writable image, 2. lay it out with Finder, 3. compress.
 RW=$(mktemp -d)/rw.dmg
 rm -f "$DMG"
-hdiutil create -volname "$VOL" -srcfolder "$STAGE" -ov -format UDRW -fs HFS+ "$RW" >/dev/null
-MNT=$(hdiutil attach "$RW" -readwrite -noverify -noautoopen -nobrowse | awk -F'\t' '/\/Volumes\//{print $NF}')
+retry hdiutil create -volname "$VOL" -srcfolder "$STAGE" -ov -format UDRW -fs HFS+ "$RW" >/dev/null
+MNT=$(retry hdiutil attach "$RW" -readwrite -noverify -noautoopen -nobrowse | awk -F'\t' '/\/Volumes\//{print $NF}')
+[ -n "$MNT" ] || { echo "could not attach $RW" >&2; exit 1; }
 osascript <<APPLESCRIPT || echo "note: Finder layout skipped (automation permission?)"
 tell application "Finder"
   tell disk "$VOL"
@@ -47,8 +52,8 @@ APPLESCRIPT
 sleep 2
 sync
 ls -la "$MNT/.DS_Store" >/dev/null 2>&1 || echo "note: Finder did not write .DS_Store; layout will be lost"
-hdiutil detach "$MNT" -quiet
-hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
+retry hdiutil detach "$MNT" -quiet || hdiutil detach "$MNT" -force
+retry hdiutil convert "$RW" -format UDZO -imagekey zlib-level=9 -o "$DMG" >/dev/null
 rm -rf "$STAGE" "$(dirname "$RW")"
 
 if [ -n "$NOTARIZE" ]; then
