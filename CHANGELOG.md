@@ -2,7 +2,7 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [0.5.2] — 2026-09-11
 
 ### Fixed
 - Fans are no longer republished from a stale cache. With the popover closed, Linux and macOS

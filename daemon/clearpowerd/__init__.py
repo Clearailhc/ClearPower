@@ -1,5 +1,5 @@
 """ClearPower daemon: samples power/battery data and controls charging."""
-VERSION = "0.5.1"
+VERSION = "0.5.2"
 BUS_NAME = "org.clearpower.Daemon1"
 OBJECT_PATH = "/org/clearpower/Daemon"
 IFACE = "org.clearpower.Daemon1"
