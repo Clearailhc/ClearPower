@@ -79,7 +79,7 @@ docs/            各平台说明、发布说明、截图
 packaging/       systemd 单元、D-Bus 策略、polkit 动作、桌面项、deb 脚本
 ```
 
-三个平台输出同一份 `Snapshot` 字典（同样的键、同样的单位，`-1` 表示未知），并用黄金测试对照 Python 守护进程逐值校验（`macos/scripts/gen-fixtures.py`，Swift 和 C# 共用同一套夹具）。新平台只需要写一个能填满这份字典的后端。
+三个平台输出同一份 `Snapshot` 字典（同样的键、同样的单位，`-1` 表示未知），并用黄金测试对照 Python 守护进程逐值校验（`macos/scripts/gen-fixtures.py`，Swift 和 C# 共用同一套夹具）。新平台只需要写一个能填满这份字典的后端。只有正在持续采样的字段才会被发布：不再采样的风扇读数 `-1`，绝不沿用上一次的值。
 
 ## 参与贡献
 

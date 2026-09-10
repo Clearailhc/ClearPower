@@ -79,7 +79,7 @@ docs/            per-platform notes, release notes, screenshots
 packaging/       systemd unit, D-Bus policy, polkit action, desktop entries, deb scripts
 ```
 
-All three ports produce the same `Snapshot` dictionary (same keys, same units, `-1` = unknown) and are checked value by value against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`, fixtures shared by the Swift and C# ports). A new platform only needs a backend that fills that dictionary.
+All three ports produce the same `Snapshot` dictionary (same keys, same units, `-1` = unknown) and are checked value by value against the Python daemon with golden tests (`macos/scripts/gen-fixtures.py`, fixtures shared by the Swift and C# ports). A new platform only needs a backend that fills that dictionary. A field is only published while it is being refreshed: a fan that is no longer being sampled reads `-1`, never its last value.
 
 ## Contributing
 

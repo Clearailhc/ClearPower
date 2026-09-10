@@ -35,13 +35,27 @@ class Sampler:
         self.raw = {}
         self._thermal = {"temp_cpu": -1.0, "temp_gpu": -1.0, "temp_nvme": -1.0, "fan1": -1, "fan2": -1}
         self._thermal_at = -1e9
+        self._thermal_hot = False
 
     def _thermal_read(self, hot):
-        """EC-backed temps/fans cost ~40 ms; only read while someone is looking, every 3 s."""
+        """EC-backed temps/fans cost ~40 ms; only read while someone is looking, every 3 s.
+
+        A reading must not outlive the sampling that produced it.  While nobody is looking
+        the fans are reported unknown: keeping the last value meant a fan that had stopped
+        still showed its old rpm (2200) in the popover.  Temperatures keep their last value
+        when cold because History records temp_cpu and a -1 would put holes in the curve;
+        they are re-read on the first hot sample, before the popover can show them.
+        """
         now = time.monotonic()
-        if hot and now - self._thermal_at >= 3.0:
+        if not hot:
+            self._thermal_hot = False
+            return {**self._thermal, "fan1": -1, "fan2": -1}
+        # The first sample after the popover opens reads immediately, ignoring the 3 s TTL,
+        # so the fan is not hidden for up to 3 s on every open.
+        if not self._thermal_hot or now - self._thermal_at >= 3.0:
             self._thermal = self.hwmon.read()
             self._thermal_at = now
+        self._thermal_hot = True
         return self._thermal
 
     def _smooth(self, key, value, now):

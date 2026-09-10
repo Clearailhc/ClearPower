@@ -2,6 +2,18 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+- Fans are no longer republished from a stale cache. With the popover closed, Linux and macOS
+  kept emitting the last fan reading, so a fan that had stopped still showed its old rpm (e.g.
+  2200) the next time the popover opened — the temperature/fan block is refreshed on demand,
+  and the cached copy was served as if it were live. The fan fields now read `-1` (unknown)
+  whenever nothing is sampling, and the first sample after the popover opens reads immediately
+  instead of waiting out the 3 s TTL. Temperatures keep their last value when cold because
+  `temp_cpu` is recorded in history. Windows already reports both as `-1` (no sensor without a
+  kernel driver) and now documents the rule.
+
 ## [0.5.1] — 2026-09-04
 
 First release that actually ships packages for all three platforms: 0.5.0 was tagged but its

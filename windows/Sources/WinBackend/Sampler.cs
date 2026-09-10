@@ -53,6 +53,10 @@ namespace ClearPower.Win
             var e = Energy.Sample();
             snap.MergeFrom(bat);
             snap.MergeFrom(bl);
+            // Windows exposes no temperature or fan sensor without a kernel driver (see
+            // windows/README.md), so these stay unknown. That is also the state the contract
+            // requires whenever a reading is not being refreshed: never republish a stale
+            // value (a fan that stopped must not keep showing its old rpm).
             snap["temp_cpu"] = -1.0; snap["temp_gpu"] = -1.0; snap["temp_nvme"] = -1.0;
             snap["fan1"] = -1; snap["fan2"] = -1;
             var onAC = bat.B("on_ac", true);

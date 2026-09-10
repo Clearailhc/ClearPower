@@ -12,6 +12,7 @@ public final class Sampler {
     public let displayCal: DisplayCalibration?
     private var thermal: [String: Any] = ["temp_cpu": -1.0, "temp_gpu": -1.0, "temp_nvme": -1.0, "fan1": -1, "fan2": -1]
     private var thermalAt = -1e9
+    private var thermalHot = false
     private var profile: (String, Bool) = ("", false)
     private var profileAt = -1e9
     public private(set) var last: [String: Any] = [:]
@@ -25,11 +26,25 @@ public final class Sampler {
     }
 
     /// Temps/fans cost a few ms of SMC reads; only while someone is looking, every 3 s.
+    /// A reading must not outlive the sampling that produced it: while the popover is closed
+    /// the fans go back to unknown instead of keeping the last rpm (a stopped fan used to
+    /// keep showing its old value). Temperatures keep their last value because History
+    /// records temp_cpu; they are re-read on the first hot sample, before anyone can see them.
     private func thermalRead(hot: Bool, now: Double) -> [String: Any] {
-        if hot && now - thermalAt >= 3 {
+        guard hot else {
+            thermalHot = false
+            var cold = thermal
+            cold["fan1"] = -1
+            cold["fan2"] = -1
+            return cold
+        }
+        // The first sample after the popover opens reads immediately, ignoring the 3 s TTL,
+        // so the fan is not hidden for up to 3 s on every open.
+        if !thermalHot || now - thermalAt >= 3 {
             thermal = thermals.read()
             thermalAt = now
         }
+        thermalHot = true
         return thermal
     }
 
