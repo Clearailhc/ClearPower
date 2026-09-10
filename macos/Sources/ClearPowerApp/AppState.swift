@@ -150,7 +150,8 @@ final class AppState: ObservableObject {
         if snap.d("temp_gpu") >= 0 { parts.append("GPU \(Int(snap.d("temp_gpu").rounded()))°") }
         if snap.d("temp_nvme") >= 0 { parts.append("SSD \(Int(snap.d("temp_nvme").rounded()))°") }
         if snap.d("temp_bat") >= 0 { parts.append(I18n.t("battery") + " \(Int(snap.d("temp_bat").rounded()))°") }
-        if snap.i("fan1", -1) > 0 { parts.append("\(snap.i("fan1")) rpm") }
+        // 0 = measured stopped, -1 = unknown (nothing sampling / no sensor): show the former.
+        if snap.i("fan1", -1) >= 0 { parts.append("\(snap.i("fan1")) rpm") }
         return parts.joined(separator: " · ")
     }
 

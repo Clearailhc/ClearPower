@@ -14,6 +14,11 @@ All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/)
   `temp_cpu` is recorded in history. Windows already reports both as `-1` (no sensor without a
   kernel driver) and now documents the rule.
 
+### Changed
+- The fan is shown whenever the reading is known, `0 rpm` included. A stopped fan used to
+  vanish from the temperature line, which made "stopped" and "unknown" look identical.
+  Unknown (`-1`: nothing is sampling, or no sensor — Windows) is still hidden.
+
 ## [0.5.1] — 2026-09-04
 
 First release that actually ships packages for all three platforms: 0.5.0 was tagged but its

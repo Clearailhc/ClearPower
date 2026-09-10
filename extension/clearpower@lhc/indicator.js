@@ -349,7 +349,8 @@ class Indicator extends PanelMenu.Button {
             parts.push(`GPU ${Math.round(snap.temp_gpu)}°`);
         if (snap.temp_nvme >= 0)
             parts.push(`SSD ${Math.round(snap.temp_nvme)}°`);
-        if (snap.fan1 > 0)
+        // 0 = measured stopped, -1 = unknown (nothing sampling / no sensor): show the former.
+        if (snap.fan1 >= 0)
             parts.push(`${snap.fan1} rpm`);
         this._temps.text = parts.join(' · ');
     }

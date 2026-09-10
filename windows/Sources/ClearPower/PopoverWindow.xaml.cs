@@ -294,7 +294,8 @@ namespace ClearPower.App
             if (snap.D("temp_cpu") >= 0) parts.Add($"CPU {Math.Round(snap.D("temp_cpu"))}°");
             if (snap.D("temp_gpu") >= 0) parts.Add($"GPU {Math.Round(snap.D("temp_gpu"))}°");
             if (snap.D("temp_nvme") >= 0) parts.Add($"SSD {Math.Round(snap.D("temp_nvme"))}°");
-            if (snap.I("fan1", -1) > 0) parts.Add($"{snap.I("fan1")} rpm");
+            // 0 = measured stopped, -1 = unknown (nothing sampling / no sensor): show the former.
+            if (snap.I("fan1", -1) >= 0) parts.Add($"{snap.I("fan1")} rpm");
             Temps.Text = string.Join(" · ", parts);
         }
 
