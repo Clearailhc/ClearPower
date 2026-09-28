@@ -6,62 +6,88 @@
 // Without firmware thresholds the helper enforces the hysteresis band itself in `enforce`.
 import Foundation
 import ClearPowerCore
-import MacBackend
 
-final class SMCChargeHardware: ChargeHardware {
-    enum Method: String { case firmware, legacy, tahoe, none }
-    let method: Method
+public final class SMCChargeHardware: ChargeHardware {
+    public enum Method: String { case firmware, legacy, tahoe, native, none }
+    public let method: Method
+    private let native: NativeChargeControl?
+    private let originalNative: (limit: Int, enabled: Bool)?
+    private var nativeChanged = false
+    private var configurationFailed = false
+    private let readSMC: (String) -> SMCValue?
+    private let writeSMC: (String, [UInt8]) -> Int32
+    public private(set) var lastError = ""
+    public var supportedLimits: [Int] { method == .native ? (native?.limits ?? []) : (method == .none ? [] : Array(50...100)) }
     private let adapterKey: String?   // CH0I / CH0J / CHIE
     private let stateURL: URL
     let log: (String) -> Void
 
     // Desired state (the state machine's view)
-    private(set) var start = 95
-    private(set) var end = 100
-    private(set) var behaviour = "auto"
+    public private(set) var start = 95
+    public private(set) var end = 100
+    public private(set) var behaviour = "auto"
     // Applied state
-    private(set) var chargingInhibited = false
-    private(set) var adapterDisabled = false
+    public private(set) var chargingInhibited = false
+    public private(set) var adapterDisabled = false
 
-    init(stateDirectory: String, log: @escaping (String) -> Void) {
+    public convenience init(stateDirectory: String, log: @escaping (String) -> Void) {
+        self.init(stateDirectory: stateDirectory, log: log, read: SMC.read,
+                  write: SMC.write, native: NativeChargeLimit())
+    }
+
+    init(stateDirectory: String, log: @escaping (String) -> Void,
+         read: @escaping (String) -> SMCValue?, write: @escaping (String, [UInt8]) -> Int32,
+         native: NativeChargeControl?) {
         self.log = log
+        readSMC = read; writeSMC = write
+        self.native = native
+        originalNative = try? native?.state()
         stateURL = URL(fileURLWithPath: stateDirectory).appendingPathComponent("state.json")
-        if SMC.exists("bfF0") && SMC.exists("bfD0") && SMC.exists("bfE0") {
-            method = .firmware
-        } else if SMC.exists("CH0B") && SMC.exists("CH0C") {
-            method = .legacy
-        } else if SMC.exists("CHTE") {
-            method = .tahoe
-        } else {
-            method = .none
-        }
-        if SMC.exists("CH0I") { adapterKey = "CH0I" }
-        else if SMC.exists("CH0J") { adapterKey = "CH0J" }
-        else if SMC.exists("CHIE") { adapterKey = "CHIE" }
+        func has(_ key: String, _ size: Int) -> Bool { read(key)?.bytes.count == size }
+        if has("bfF0", 1) && has("bfD0", 4) && has("bfE0", 4) { method = .firmware }
+        else if has("CH0B", 1) && has("CH0C", 1) { method = .legacy }
+        else if has("CHTE", 4) { method = .tahoe }
+        else if native != nil && originalNative != nil { method = .native }
+        else { method = .none }
+        if has("CH0I", 1) { adapterKey = "CH0I" }
+        else if has("CH0J", 1) { adapterKey = "CH0J" }
+        else if has("CHIE", 1) { adapterKey = "CHIE" }
         else { adapterKey = nil }
         log("charge control method: \(method.rawValue), adapter key: \(adapterKey ?? "none")")
     }
 
     // ---- ChargeHardware ----
-    var thresholdsSupported: Bool { method != .none }
-    var behaviours: [String] {
-        var b = ["auto", "inhibit-charge"]
-        if adapterKey != nil && method != .none { b.append("force-discharge") }
+    public var thresholdsSupported: Bool { method != .none }
+    public var behaviours: [String] {
+        var b = ["auto"]
+        if method == .legacy || method == .tahoe { b.append("inhibit-charge") }
+        if adapterKey != nil { b.append("force-discharge") }
         return b
     }
 
-    func writeThresholds(start: Int, end: Int) throws {
+    public func writeThresholds(start: Int, end: Int) throws {
+        guard supportedLimits.contains(end) else {
+            configurationFailed = true
+            lastError = "Supported charge limits: \(supportedLimits)"
+            throw ChargeError(errno: 95, lastError)
+        }
+        do {
+            if method == .firmware { _ = try writeFirmwareLimit(lower: start, upper: end) }
+            if method == .native { try applyNativeLimit(end) }
+        } catch {
+            configurationFailed = true
+            lastError = String(describing: error)
+            throw error
+        }
+        configurationFailed = false
         self.start = start
         self.end = end
-        if method == .firmware {
-            _ = try writeFirmwareLimit(lower: start, upper: end)
-        }
+        lastError = ""
         // Other methods: applied on the next `enforce`.
     }
 
-    func writeBehaviour(_ b: String) throws {
+    public func writeBehaviour(_ b: String) throws {
         guard behaviours.contains(b) else { throw ChargeError(errno: 22, "charge_behaviour '\(b)' unsupported") }
-        behaviour = b
         switch b {
         case "force-discharge":
             try setAdapter(enabled: false)
@@ -71,15 +97,16 @@ final class SMCChargeHardware: ChargeHardware {
         default:
             try setAdapter(enabled: true)
         }
+        behaviour = b
     }
 
-    func loadLimit() -> Int? {
+    public func loadLimit() -> Int? {
         guard let data = try? Data(contentsOf: stateURL),
               let d = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
         return Snapshot.int(d["limit"])
     }
 
-    func saveLimit(_ limit: Int) {
+    public func saveLimit(_ limit: Int) {
         do {
             try FileManager.default.createDirectory(at: stateURL.deletingLastPathComponent(), withIntermediateDirectories: true)
             try JSONSerialization.data(withJSONObject: ["limit": limit]).write(to: stateURL, options: .atomic)
@@ -92,7 +119,8 @@ final class SMCChargeHardware: ChargeHardware {
     /// Apply the hysteresis band for the current battery level and re-assert the keys
     /// (firmware / PD renegotiation can silently reset them). Returns true if anything changed.
     @discardableResult
-    func enforce(batPct: Int) -> Bool {
+    public func enforce(batPct: Int) -> Bool {
+        guard !configurationFailed else { return false }
         var changed = false
         do {
             switch behaviour {
@@ -103,7 +131,9 @@ final class SMCChargeHardware: ChargeHardware {
                 changed = try setCharging(enabled: false) || changed
             default:
                 changed = try setAdapter(enabled: true) || changed
-                if method != .firmware {
+                if method == .native {
+                    try applyNativeLimit(end)
+                } else if method != .firmware && method != .none {
                     if end >= 100 || batPct <= start {
                         changed = try setCharging(enabled: true) || changed
                     } else if batPct >= end {
@@ -111,11 +141,13 @@ final class SMCChargeHardware: ChargeHardware {
                     } else {
                         changed = try setCharging(enabled: !chargingInhibited) || changed  // hold, but re-assert
                     }
-                } else {
+                } else if method == .firmware {
                     changed = try writeFirmwareLimit(lower: start, upper: end) || changed
                 }
             }
+            lastError = ""
         } catch {
+            lastError = String(describing: error)
             log("enforce failed: \(error)")
         }
         return changed
@@ -123,19 +155,33 @@ final class SMCChargeHardware: ChargeHardware {
 
     /// Before sleep: nobody can enforce the limit while asleep, so stop charging once the
     /// battery is inside the hysteresis band (it would otherwise overshoot to 100 %).
-    func prepareForSleep(batPct: Int) {
-        guard behaviour == "auto", method != .firmware, end < 100, batPct >= start else { return }
+    public func prepareForSleep(batPct: Int) {
+        guard behaviour == "auto", method != .firmware, method != .native, end < 100, batPct >= start else { return }
         do {
             if try setCharging(enabled: false) { log("sleep: charging stopped at \(batPct)% (limit \(end))") }
         } catch { log("sleep prepare failed: \(error)") }
     }
 
     /// Restore platform defaults (helper exit).
-    func reset() {
+    public func reset() {
         behaviour = "auto"
         _ = try? setAdapter(enabled: true)
         _ = try? setCharging(enabled: true)
-        if method == .firmware { _ = SMC.write("bfF0", [0x00]) }
+        if method == .firmware { _ = writeSMC("bfF0", [0x00]) }
+        if method == .native, nativeChanged, let original = originalNative {
+            do {
+                if original.enabled { try native?.set(original.limit) } else { try native?.disable() }
+            } catch { log("cannot restore native limit: \(error)") }
+        }
+    }
+
+    private func applyNativeLimit(_ limit: Int) throws {
+        guard let native = native else { throw ChargeError(errno: 95, "Native charge limit unavailable") }
+        let current = try native.state()
+        if current.limit != limit || (limit < 100 && !current.enabled) {
+            nativeChanged = true
+            try native.set(limit)
+        }
     }
 
     // ---- SMC writes ----
@@ -146,11 +192,14 @@ final class SMCChargeHardware: ChargeHardware {
         case .legacy:
             let v: UInt8 = enabled ? 0x00 : 0x02
             for k in ["CH0B", "CH0C"] {
-                if SMC.read(k)?.bytes.first != v { try write(k, [v]); wrote = true }
+                if readSMC(k)?.bytes.first != v { try write(k, [v]); wrote = true }
             }
         case .tahoe:
             let v: [UInt8] = enabled ? [0, 0, 0, 0] : [1, 0, 0, 0]
-            if SMC.read("CHTE")?.bytes != v { try write("CHTE", v); wrote = true }
+            if readSMC("CHTE")?.bytes != v { try write("CHTE", v); wrote = true }
+        case .native:
+            // Native mode enforces a percentage in macOS, not an immediate charge switch.
+            if !enabled { throw ChargeError(errno: 95, "Use the native charge limit to stop charging") }
         case .firmware, .none:
             break
         }
@@ -169,7 +218,7 @@ final class SMCChargeHardware: ChargeHardware {
         }
         let v: UInt8 = enabled ? 0x00 : (key == "CHIE" ? 0x08 : 0x01)
         var wrote = false
-        if SMC.read(key)?.bytes.first != v { try write(key, [v]); wrote = true }
+        if readSMC(key)?.bytes.first != v { try write(key, [v]); wrote = true }
         if wrote { log("adapter \(enabled ? "enabled" : "disabled") via \(key)") }
         adapterDisabled = !enabled
         return wrote
@@ -177,8 +226,8 @@ final class SMCChargeHardware: ChargeHardware {
 
     private func writeFirmwareLimit(lower: Int, upper: Int) throws -> Bool {
         func u32le(_ v: Int) -> [UInt8] { [UInt8(v & 0xff), UInt8((v >> 8) & 0xff), UInt8((v >> 16) & 0xff), UInt8((v >> 24) & 0xff)] }
-        let active = SMC.read("bfF0")?.bytes.first == 0x02
-        let curUpper = SMC.read("bfD0")?.bytes, curLower = SMC.read("bfE0")?.bytes
+        let active = readSMC("bfF0")?.bytes.first == 0x02
+        let curUpper = readSMC("bfD0")?.bytes, curLower = readSMC("bfE0")?.bytes
         if upper >= 100 {
             if active { try write("bfF0", [0x00]); return true }
             return false
@@ -193,8 +242,8 @@ final class SMCChargeHardware: ChargeHardware {
     }
 
     private func write(_ key: String, _ bytes: [UInt8]) throws {
-        let r = SMC.write(key, bytes)
-        if r != 0 {
+        let r = writeSMC(key, bytes)
+        if r != 0 || readSMC(key)?.bytes != bytes {
             throw ChargeError(errno: r == -1 ? 2 : 13, "SMC write \(key) failed (\(r))")
         }
     }

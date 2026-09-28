@@ -25,6 +25,7 @@ public struct RuntimeEstimator {
     }
 
     public mutating func add(t: Double, energyWh: Double, status: String) {
+        guard energyWh.isFinite, energyWh >= 0 else { buf.removeAll(); return }
         buf.append((t, energyWh, Self.phase(status)))
         if buf.count > Self.capacity { buf.removeFirst(buf.count - Self.capacity) }
     }

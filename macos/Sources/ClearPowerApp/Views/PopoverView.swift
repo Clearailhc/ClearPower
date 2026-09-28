@@ -20,6 +20,18 @@ struct PopoverView: View {
                 }
             }
             header
+            if online && state.helper.helperVersion != ClearPowerVersion.string {
+                HStack {
+                    Text(I18n.t("helperUpdateNeeded", ["v": state.helper.helperVersion])).font(.caption)
+                    Spacer()
+                    Button(I18n.t("helperInstall")) { install() }
+                }
+            } else if online && !state.helper.controlSupported {
+                Text(I18n.t("chargeUnsupported")).font(.caption).foregroundColor(.secondary)
+            }
+            if !state.helper.controlError.isEmpty {
+                Text(state.helper.controlError).font(.caption).foregroundColor(.red)
+            }
             if let e = state.lastError {
                 Text(e).font(.caption).foregroundColor(Color(red: 0.88, green: 0.48, blue: 0.37))
             }
@@ -65,7 +77,7 @@ struct PopoverView: View {
                     Label(state.mode == "discharge" ? I18n.t("dischargingTo", ["n": state.helper.target]) : I18n.t("discharge"), systemImage: "minus")
                 }
                 .buttonStyle(PillButtonStyle(checked: state.mode == "discharge"))
-                .disabled(!state.helperCanControl)
+                .disabled(!state.helperOnline)
             }
             Button {
                 state.toggleTopUp()
@@ -107,7 +119,9 @@ struct PopoverView: View {
     private var appsBox: some View {
         let sig = state.topApps.filter { $0.w >= AppState.appMinW }
         return VStack(alignment: .leading, spacing: 4) {
-            if sig.isEmpty {
+            if state.snapshot.d("cpu_w") < 0 {
+                Text(I18n.t("appPowerUnavailable")).font(.callout).foregroundColor(.secondary)
+            } else if sig.isEmpty {
                 HStack { Spacer(); Text(I18n.t("noApps")).font(.callout).foregroundColor(.secondary); Spacer() }
             } else {
                 ForEach(Array(sig.enumerated()), id: \.offset) { _, app in

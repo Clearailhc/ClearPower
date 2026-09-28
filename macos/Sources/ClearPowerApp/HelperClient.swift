@@ -14,6 +14,9 @@ final class HelperClient {
     var target: Int { state.i("charge_target", 0) }
     var controlSupported: Bool { state.b("control_supported", false) }
     var dischargeSupported: Bool { state.b("discharge_supported", false) }
+    var nativeLimits: Bool { state.s("control_method") == "native" }
+    var supportedLimits: [Int] { state["supported_limits"] as? [Int] ?? Array(50...100) }
+    var controlError: String { state.s("control_error") }
     var helperVersion: String { state.s("version", "") }
 
     /// Keys merged into every engine snapshot (same names as the Linux daemon).

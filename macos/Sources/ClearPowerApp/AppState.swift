@@ -138,7 +138,7 @@ final class AppState: ObservableObject {
     func healthText() -> String {
         let snap = snapshot
         let design = snap.d("bat_design_wh", 0), full = snap.d("bat_full_wh", 0)
-        guard design > 0 else { return "" }
+        guard design > 0, full > 0 else { return "" }
         return I18n.t("health", ["p": Int((100 * full / design).rounded()), "full": String(format: "%.1f", full),
                                   "design": String(format: "%.1f", design), "n": snap.i("cycle_count", 0)])
     }

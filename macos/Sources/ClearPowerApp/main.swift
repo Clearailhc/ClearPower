@@ -3,6 +3,15 @@ import AppKit
 import ClearPowerCore
 import MacBackend
 
+// Read-only capability diagnosis; never applies limits or changes adapter state.
+if CommandLine.arguments.contains("--charge-capabilities") {
+    let hw = SMCChargeHardware(stateDirectory: "/Library/Application Support/ClearPower", log: { _ in })
+    print(Snapshot.json(["control_method": hw.method.rawValue, "supported_limits": hw.supportedLimits,
+                         "control_supported": hw.thresholdsSupported,
+                         "discharge_supported": hw.behaviours.contains("force-discharge")]))
+    exit(0)
+}
+
 // `--once`: print one snapshot as JSON plus a parts-vs-total check (mirrors
 // `python3 -m clearpowerd --once`). Two samples are taken so energy counters have a delta.
 if CommandLine.arguments.contains("--once") {
@@ -31,25 +40,32 @@ if let i = CommandLine.arguments.firstIndex(of: "--loop") {
     var count = 0
     engine.onSample = { snap in
         count += 1
+        if CommandLine.arguments.contains("--json") {
+            print(Snapshot.json(snap, pretty: false))
+        } else {
         print(String(format: "%3d sys=%6.2f cpu=%6.2f gpu=%6.2f soc=%6.2f mem=%6.2f other=%6.2f src=%@ pkg_raw=%6.2f",
                      count, snap.d("sys_w"), snap.d("cpu_w"), snap.d("gpu_w"), snap.d("soc_w"), snap.d("mem_w"), snap.d("other_w"),
                      snap.s("sys_source"), engine.sampler.raw.package))
+        }
         if count >= n { exit(0) }
     }
+    var keepAliveTimer: DispatchSourceTimer?
     if CommandLine.arguments.contains("--engine-timer") {
         // Use the engine's own adaptive timer, touching it every second like the popover does.
         let touch = DispatchSource.makeTimerSource(queue: .main)
         touch.schedule(deadline: .now(), repeating: 1.0)
         touch.setEventHandler { engine.touch() }
         touch.resume()
+        keepAliveTimer = touch
         engine.start()
     } else {
         let t = DispatchSource.makeTimerSource(queue: .main)
         t.schedule(deadline: .now(), repeating: 1.0)
         t.setEventHandler { engine.touch(); engine.tick() }
         t.resume()
+        keepAliveTimer = t
     }
-    RunLoop.main.run()
+    withExtendedLifetime(keepAliveTimer) { RunLoop.main.run() }
 }
 
 extension Array { subscript(safe i: Int) -> Element? { indices.contains(i) ? self[i] : nil } }

@@ -7,6 +7,9 @@ import Foundation
 import CSupport
 
 public final class EnergySource {
+    private var health = EnergyHealth()
+    public private(set) var complete = false
+    public private(set) var cpuSource = "none"
     private var handle: OpaquePointer?
     private var buf = [cp_energy_entry](repeating: cp_energy_entry(), count: 512)
     public private(set) var lastChannels: [(String, Double)] = []   // watts, for debugging
@@ -59,7 +62,21 @@ public final class EnergySource {
         }
         // package covers everything, dram included; the breakdown treats dram separately.
         package -= dram
-        let result = (core: sawCPU ? core : -1, uncore: sawGPU ? uncore : -1, dram: sawDRAM ? dram : -1, package: package)
+        complete = health.usable(cpu: sawCPU ? core : -1)
+        if !complete {
+            // CPU/DRAM/SoC share PMGR's stalled counters; do not show them as
+            // valid zeros or include a later batched update as an instantaneous spike.
+            let fallback = PowerSensors.cpu(chip: PowerSensors.chip, read: SMC.readFloat)
+            core = fallback ?? -1
+            cpuSource = fallback == nil ? "none" : "smc-rails"
+            dram = -1
+            package = max(core, 0) + (sawGPU ? max(uncore, 0) : 0)
+        } else {
+            cpuSource = "ioreport"
+        }
+        let result = (core: complete ? (sawCPU ? core : -1) : core,
+                      uncore: sawGPU ? uncore : -1,
+                      dram: complete && sawDRAM ? dram : -1, package: package)
         lastResult = result
         return result
     }

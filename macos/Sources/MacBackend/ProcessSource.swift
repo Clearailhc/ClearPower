@@ -30,8 +30,8 @@ public final class ProcessSource {
     /// call. The first call primes the baseline and returns [].
     public func usage(now: Double) -> [(String, Double)] {
         var pids = [pid_t](repeating: 0, count: 4096)
-        let bytes = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
-        let count = Int(bytes) / MemoryLayout<pid_t>.size
+        let listed = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        let count = min(max(Int(listed), 0), pids.count)  // libproc returns a PID count, not bytes
         var cur: [pid_t: (cpuNs: UInt64, name: String)] = [:]
         var out: [(String, Double)] = []
         let dt = now - lastT

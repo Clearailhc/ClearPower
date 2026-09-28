@@ -2,6 +2,28 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.6.0] — 2026-09-28
+
+### Fixed
+- macOS 27 battery power now comes from signed current × voltage instead of the
+  misleading PPBR sensor. New nested capacity fields restore health and runtime.
+- Actual adapter input is used in the conserved power flow. Live backlight sensors
+  replace the older calibration estimate on supported models.
+- Stalled PMGR counters use verified CPU rails on M3 Max. Missing memory/SoC data
+  remains unknown; delayed counter spikes do not become instantaneous power.
+- macOS 27 charging uses native system limits when direct SMC control is gated.
+  Discharge capability is detected independently. The UI exposes supported limits,
+  helper upgrades and control failures instead of implying an inactive limit works.
+- Process enumeration now scans the returned PID count; application power uses the
+  CPU budget. Diagnostics retain their sampling timer for the whole recording.
+- Packaging fails on build errors and resolves SwiftPM's actual output directory.
+  Command Line Tools builds handle the macOS 27 State macro/toolchain changes.
+
+### Validation
+- macOS compatibility regression tests plus existing Python-reference golden tests.
+- Hardware validation on M3 Max / macOS 27.0 (26A428); see the release notes for
+  scope and limitations, including native limits starting at 80% on this Mac.
+
 ## [0.5.2] — 2026-09-11
 
 ### Fixed

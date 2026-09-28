@@ -172,9 +172,10 @@ final class SankeyModel: ObservableObject {
     /// Which sinks are visible is decided on the *target* values so bands never flicker.
     func visibleSinks() -> [Sink] {
         guard let tg = target else { return [] }
-        let measured = tg.d("cpu_w") >= 0
+        let measured = ["cpu_w", "gpu_w", "soc_w", "mem_w"].contains { tg.d($0) >= 0 }
         let displayKnown = tg.d("display_w") >= 0
         if !measured {  // no per-block counters: everything we know is the total
+            if displayKnown { return [SINKS[4], SINKS[5]] }
             var s = SINKS[5]; s.key = "sys_w"; s.label = "system"; s.tip = "tipSystem"
             return [s]
         }
@@ -230,7 +231,7 @@ final class SankeyModel: ObservableObject {
         let vis = visibleSinks()
         let visIds = Set(vis.map { $0.id })
         var hidden = 0.0
-        for sk in SINKS where !visIds.contains(sk.id) && s.d(sk.key) > 0 && (target?.d("cpu_w") ?? -1) >= 0 {
+        for sk in SINKS where !visIds.contains(sk.id) && s.d(sk.key) > 0 && vis.contains(where: { $0.key != "sys_w" }) {
             hidden += s.d(sk.key)
         }
         let vals = vis.map { max(s.d($0.key, 0), 0) + ($0.id == "other" ? hidden : 0) }
@@ -238,7 +239,7 @@ final class SankeyModel: ObservableObject {
         let k = (sum > 0.01 && sysW > 0) ? sysW / sum : 1
         for (i, v) in vis.enumerated() {
             let n = add(2, v.id, I18n.t(v.label), vals[i] * k, v.color, key: v.label)
-            n.approx = v.approx
+            n.approx = v.id == "disp" ? !s.b("display_measured") : v.approx
             flow("pc", v.id, vals[i] * k)
         }
         for f in g.flows {

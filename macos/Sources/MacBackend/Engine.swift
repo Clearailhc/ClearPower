@@ -76,7 +76,7 @@ public final class Engine {
         snap.merge(displayCal.snapshotKeys) { $1 }
         history.add(snap)
         if hot {
-            let pkg = snap.d("package_w")
+            let pkg = snap.d("cpu_w")
             topProcesses = procs.sample(now: now, packageW: pkg, usage: { procSource.usage(now: now) })
         }
         snapshot = snap

@@ -68,6 +68,7 @@ public final class ChargeStateMachine {
     }
 
     public func setLimit(_ pct: Int) throws {
+        guard supported else { throw ChargeError(errno: 95, "charge control not supported") }
         let prev = limit
         limit = Self.clampLimit(pct)
         do {
@@ -81,23 +82,31 @@ public final class ChargeStateMachine {
     }
 
     public func startTopUp() throws {
+        guard supported else { throw ChargeError(errno: 95, "charge control not supported") }
+        do {
+            try hw.writeThresholds(start: 95, end: 100)
+            try hw.writeBehaviour("auto")
+        } catch {
+            if mode != .topup { try? applyLimit() }
+            throw error
+        }
         mode = .topup
-        try hw.writeBehaviour("auto")
-        try hw.writeThresholds(start: 95, end: 100)
     }
 
     public func startDischarge(target requested: Int) throws {
         guard dischargeSupported else { throw ChargeError(errno: 95, "force-discharge not supported") }
         let t = requested > 0 ? requested : limit
+        try hw.writeBehaviour("force-discharge")
         target = max(floor, min(99, t))
         mode = .discharge
-        try hw.writeBehaviour("force-discharge")
     }
 
     public func cancel() throws {
+        // Always reconnect the adapter first, even if a saved limit can no
+        // longer be applied. A failed limit must never leave forced discharge on.
+        try hw.writeBehaviour("auto")
         mode = .limit
         target = 0
-        try hw.writeBehaviour("auto")
         try applyLimit()
     }
 

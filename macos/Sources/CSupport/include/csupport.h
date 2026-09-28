@@ -35,6 +35,14 @@ void cp_ioreport_close(cp_ioreport *r);
 // kept; reuse the previous result). elapsed_s receives the wall-clock interval.
 int cp_ioreport_sample(cp_ioreport *r, cp_energy_entry *out, int max_entries, double *elapsed_s);
 
+// ---- Native charge limits (PowerUI; optional, macOS 27) -------------------
+void *cp_charge_open(void);
+void cp_charge_close(void *client);
+int cp_charge_limits(void *client, int *limits, int capacity);
+int cp_charge_get(void *client, int *limit, int *enabled, char *message, int size);
+int cp_charge_set(void *client, int limit, char *message, int size);
+int cp_charge_disable(void *client, char *message, int size);
+
 // ---- Display --------------------------------------------------------------
 int cp_brightness_get(float *out);                     // 0 ok (built-in display)
 int cp_brightness_set(float value);                    // 0 ok

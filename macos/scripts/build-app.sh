@@ -18,9 +18,9 @@ C="$APP/Contents"
 sed -i '' "s/public static let string = \"[^\"]*\"/public static let string = \"$VERSION\"/" Sources/ClearPowerCore/Version.swift
 
 echo "== swift build ($CONFIG, arm64)"
-swift build -c "$CONFIG" --arch arm64 2>&1 | grep -E "error|Build" || true
-[ -x ".build/arm64-apple-macosx/$CONFIG/ClearPower" ] || { echo "build failed" >&2; exit 1; }
-BIN=.build/arm64-apple-macosx/$CONFIG
+swift build -c "$CONFIG" --arch arm64
+BIN=$(swift build -c "$CONFIG" --arch arm64 --show-bin-path)
+[ -x "$BIN/ClearPower" ] && [ -x "$BIN/clearpower-helper" ] || { echo "build failed" >&2; exit 1; }
 
 echo "== assemble $APP"
 rm -rf "$APP"

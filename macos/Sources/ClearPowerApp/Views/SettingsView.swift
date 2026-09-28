@@ -3,14 +3,18 @@ import SwiftUI
 import ServiceManagement
 import ClearPowerCore
 
+// SDK 27 introduces a State macro whose plugin is absent from Command Line Tools.
+// Explicitly name the existing property-wrapper type to keep CLT-only builds working.
+typealias ViewState<Value> = SwiftUI.State<Value>
+
 struct SettingsView: View {
     @EnvironmentObject var state: AppState
     @ObservedObject private var prefs: Prefs
-    @State private var limitValue = 80
-    @State private var limitMessage = ""
-    @State private var limitTask: DispatchWorkItem? = nil
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var helperMessage = ""
+    @ViewState private var limitValue = 80
+    @ViewState private var limitMessage = ""
+    @ViewState private var limitTask: DispatchWorkItem? = nil
+    @ViewState private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @ViewState private var helperMessage = ""
 
     init(prefs: Prefs) { self.prefs = prefs }
 
@@ -36,13 +40,27 @@ struct SettingsView: View {
                     }
             }
             Section(I18n.t("prefsCharge")) {
-                Stepper(value: $limitValue, in: 50...100) {
-                    HStack { Text(I18n.t("prefsLimit")); Spacer(); Text("\(limitValue) %").monospacedDigit() }
+                Group {
+                    if state.helper.nativeLimits {
+                        Picker(I18n.t("prefsLimit"), selection: $limitValue) {
+                            ForEach(state.helper.supportedLimits, id: \.self) { value in
+                                Text("\(value) %").tag(value)
+                            }
+                            if !state.helper.supportedLimits.contains(limitValue) {
+                                Text("\(limitValue) % — " + I18n.t("unavailable")).tag(limitValue)
+                            }
+                        }
+                    } else {
+                        Stepper(value: $limitValue, in: 50...100) {
+                            HStack { Text(I18n.t("prefsLimit")); Spacer(); Text("\(limitValue) %").monospacedDigit() }
+                        }
+                    }
                 }
                 .onChange(of: limitValue) { _, v in scheduleLimit(v) }
                 .disabled(!state.helperCanControl)
-                Text(limitMessage.isEmpty ? I18n.t("prefsLimitSub") : limitMessage).font(.caption).foregroundColor(.secondary)
-                Text(I18n.t("sleepNote")).font(.caption).foregroundColor(.secondary)
+                Text(limitMessage.isEmpty ? I18n.t(state.helper.nativeLimits ? "nativeLimitNote" : "prefsLimitSub") : limitMessage)
+                    .font(.caption).foregroundColor(.secondary)
+                if !state.helper.nativeLimits { Text(I18n.t("sleepNote")).font(.caption).foregroundColor(.secondary) }
                 helperRow
             }
             Section(I18n.t("prefsRuntime")) {
@@ -57,11 +75,11 @@ struct SettingsView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(I18n.t("prefsCalibrateTitle"))
-                        Text(I18n.t("prefsCalibrateSub")).font(.caption).foregroundColor(.secondary)
+                        Text(I18n.t(state.snapshot.b("display_measured") ? "displaySensorNote" : "prefsCalibrateSub")).font(.caption).foregroundColor(.secondary)
                     }
                     Spacer()
                     Button(I18n.t("prefsCalibrate")) { state.calibrateDisplay() }
-                        .disabled(state.snapshot.s("calib_state") == "running")
+                        .disabled(state.snapshot.b("display_measured") || state.snapshot.s("calib_state") == "running")
                 }
                 Text(calibrationStatus).font(.caption).foregroundColor(.secondary)
             }

@@ -15,7 +15,9 @@ let package = Package(
         // C shims for private/awkward system APIs: SMC user client, IOReport, DisplayServices.
         .target(
             name: "CSupport",
+            cSettings: [.unsafeFlags(["-fobjc-arc"])],
             linkerSettings: [
+                .linkedFramework("Foundation"),
                 .linkedFramework("IOKit"),
                 .linkedFramework("CoreFoundation"),
                 .linkedFramework("CoreGraphics"),
@@ -32,6 +34,7 @@ let package = Package(
         .executableTarget(
             name: "ClearPowerApp",
             dependencies: ["ClearPowerCore", "MacBackend", "ClearPowerIPC"]),
+        .testTarget(name: "MacBackendTests", dependencies: ["MacBackend", "ClearPowerCore"]),
         .testTarget(
             name: "ClearPowerCoreTests",
             dependencies: ["ClearPowerCore"],

@@ -17,7 +17,7 @@ public final class Sampler {
     private var profileAt = -1e9
     public private(set) var last: [String: Any] = [:]
     public var raw: RawPower { model.raw }
-    public var energyAvailable: Bool { energy.available }
+    public var energyAvailable: Bool { energy.available && energy.complete }
     public var log: (String) -> Void = { _ in }
 
     public init(smoothingS: Double, displayCal: DisplayCalibration?) {
@@ -84,7 +84,11 @@ public final class Sampler {
 
         var raw = RawPower()
         raw.batW = bat.d("bat_w", 0)
-        raw.psys = plat.systemW
+        raw.batteryKnown = bat.b("bat_power_available")
+        raw.psys = PowerSensors.nonnegative(plat.systemW) ?? bat.d("telemetry_sys_w")
+        raw.dcIn = onAC ? (PowerSensors.nonnegative(plat.dcInW) ?? bat.d("telemetry_dc_in_w")) : -1
+        raw.display = PowerSensors.display(chip: PowerSensors.chip, read: SMC.readFloat) ?? -1
+        raw.packageComplete = energy.complete
         if let e = e {
             raw.core = e.core; raw.uncore = e.uncore; raw.dram = e.dram; raw.package = e.package
         }
@@ -94,7 +98,10 @@ public final class Sampler {
         snap.merge(breakdown) { $1 }
         // The SMC total is the same physical quantity as RAPL psys but a different sensor.
         if snap.s("sys_source") == "psys" { snap["sys_source"] = "smc" }
-        snap["dc_in_w"] = plat.dcInW
+        snap["dc_in_w_raw"] = plat.dcInW
+        snap["cpu_source"] = energy.cpuSource
+        snap["energy_counters_stalled"] = !energy.complete
+        snap["display_source"] = raw.display >= 0 ? "smc" : (emission >= 0 ? "calibration" : "none")
         let (prof, high) = profileRead(hot: hot, now: now)
         snap["platform_profile"] = prof
         snap["high_power_supported"] = high

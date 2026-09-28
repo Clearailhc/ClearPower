@@ -29,7 +29,7 @@ public enum SMC {
 
     public static func read(_ key: String) -> SMCValue? {
         var v = cp_smc_value()
-        guard cp_smc_read(key, &v) == 0 else { return nil }
+        guard cp_smc_read(key, &v) == 0, v.size > 0, v.size <= 32 else { return nil }
         let type = withUnsafeBytes(of: v.type) { String(bytes: $0.prefix(4), encoding: .ascii) ?? "" }
         let bytes = withUnsafeBytes(of: v.bytes) { Array($0.prefix(Int(v.size))) }
         return SMCValue(type: type, bytes: bytes)

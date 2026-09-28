@@ -5,7 +5,7 @@ import ClearPowerCore
 
 struct SankeyView: View {
     @ObservedObject var model: SankeyModel
-    @State private var hovered: String? = nil
+    @ViewState private var hovered: String? = nil
 
     var body: some View {
         GeometryReader { geo in

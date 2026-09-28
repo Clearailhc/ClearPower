@@ -80,6 +80,8 @@ final class HelperCore {
         s["control_supported"] = charge.supported
         s["discharge_supported"] = charge.dischargeSupported
         s["control_method"] = hw.method.rawValue
+        s["supported_limits"] = hw.supportedLimits
+        s["control_error"] = hw.lastError
         s["bat_pct"] = lastPct
         s["version"] = ClearPowerVersion.string
         return s
