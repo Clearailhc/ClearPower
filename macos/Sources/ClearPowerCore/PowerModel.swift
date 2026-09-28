@@ -66,12 +66,16 @@ public struct PowerModel {
         // bat_w is signed; the -1 sentinel logic must not apply to it.
         let batW = ema["bat_w"]!.update(input.batW, at: now)
         let psys = smooth("psys", input.psys, now)
-        let package = smooth("package", input.package, now)
+        let smoothedPackage = smooth("package", input.package, now)
         let core = smooth("core", input.core, now)
         let uncore = smooth("uncore", input.uncore, now)
         let dram = smooth("dram", input.dram, now)
         let dcIn = smooth("dc_in", input.dcIn, now)
         let measuredDisplay = smooth("display", input.display, now)
+        // A transition to partial measurements must not carry stale SoC energy
+        // in the package smoother after the SoC node becomes unavailable.
+        let package = input.packageComplete ? smoothedPackage :
+            (input.package >= 0 ? max(core, 0) + max(uncore, 0) : -1)
 
         // ---- whole-machine draw ----
         var sysW: Double, sysSource: String

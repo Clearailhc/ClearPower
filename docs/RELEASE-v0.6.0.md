@@ -35,7 +35,7 @@ an M3 Max (Mac15,10), macOS 27.0 build 26A428. CPU fallback rail mappings are ve
 for M3 Max only; on other chips with stalled counters, unavailable readings remain
 unknown. Private interfaces may change with future firmware updates.
 
-Local verification: 22 Swift tests (including legacy golden fixtures and macOS 27
+Local verification: 23 Swift tests (including legacy golden fixtures and macOS 27
 regressions), 7 Linux tests, and a 16-snapshot live CPU workload trace with conserved
 power flows. The native interface was verified by setting 95%, reading it back, then
 restoring the previous 100% setting. Administrator/helper installation is separate

@@ -65,6 +65,17 @@ struct PowerCompatibilityTests {
         }
     }
 
+    @Test func stalledTransitionCannotLeaveUnattributedSmoothedPackagePower() {
+        var model = PowerModel(smoothingS: 5)
+        var raw = RawPower(batW: 0, psys: 20, package: 10, core: 2, uncore: 1, dram: 2)
+        _ = model.update(raw: raw, onAC: true, now: 0, displayEmission: 3, displayOn: true)
+        raw.packageComplete = false; raw.package = 3; raw.dram = -1
+        let result = model.update(raw: raw, onAC: true, now: 1, displayEmission: 3, displayOn: true)
+        let total = ["cpu_w", "gpu_w", "soc_w", "mem_w", "display_w", "other_w"].map { max(result.d($0), 0) }.reduce(0, +)
+        #expect(abs(total - result.d("sys_w")) < 1e-9)
+        #expect(result.d("soc_w") == -1)
+    }
+
     @Test func missingBatteryCannotBeSubtractedFromInput() {
         var raw = RawPower(batW: 0, psys: 14, package: 2, core: -1, uncore: 2, dram: -1)
         raw.dcIn = 50; raw.batteryKnown = false; raw.packageComplete = false

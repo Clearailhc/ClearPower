@@ -35,7 +35,7 @@ func nodeTipKey(_ n: SankeyNode) -> String {
     case "batchg": return "tipBatchg"
     case "pc": return "tipSystem"
     case "other": return n.labelKey == "displayOther" ? "tipDisplayOther" : "tipOther"
-    case "disp": return "tipDisplay"
+    case "disp": return n.approx ? "tipDisplay" : "tipDisplayMeasured"
     case "mem": return "tipMemory"
     case "cpu": return "tipCpu"
     case "gpu": return "tipGpu"
