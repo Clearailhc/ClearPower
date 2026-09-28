@@ -30,7 +30,8 @@ struct Sink {
 /// Tooltip description key for a node.
 func nodeTipKey(_ n: SankeyNode) -> String {
     switch n.id {
-    case "adapter": return "tipAdapter"
+    case "adapter": return n.labelKey == "adapterReading" ? "tipAdapterDisabled" :
+        (n.approx ? "tipAdapterEstimate" : "tipAdapter")
     case "battery": return "tipBattery"
     case "batchg": return "tipBatchg"
     case "pc": return "tipSystem"
@@ -62,6 +63,7 @@ let NODE_H = 50.0, GAP = 10.0, PAD = 6.0
 
 func fmtW(_ w: Double, digits: Int? = nil) -> String {
     if !w.isFinite || w < 0 { return "–" }
+    if digits == nil && w > 0 && w < 0.05 { return "<0.1 W" }
     let d = digits ?? (w >= 100 ? 0 : 1)
     return String(format: "%.\(d)f W", w)
 }
@@ -101,13 +103,16 @@ final class SankeyModel: ObservableObject {
     /// New data. Eases in while visible, snaps otherwise.
     func update(_ snap: [String: Any]) {
         if snap.d("cpu_w") < 0 { engineLogger.notice("sankey: cpu_w<0 pkg=\(snap.d("package_w")) sys=\(snap.d("sys_w")) src=\(snap.s("sys_source"), privacy: .public)") }
+        let sourceChanged = target?.b("on_ac") != snap.b("on_ac") ||
+            target?.b("adapter_input_disabled") != snap.b("adapter_input_disabled") ||
+            ((target?.d("bat_w", 0) ?? 0) * snap.d("bat_w", 0) < 0)
         target = snap
-        if shown == nil {
+        if shown == nil || sourceChanged {
             shown = snap
         } else {
             var s = shown!
             for (k, v) in snap {
-                if !NUMERIC.contains(k) || (Snapshot.double(v) ?? -1) < 0 { s[k] = v }  // -1 snaps instantly
+                if !NUMERIC.contains(k) || (Snapshot.double(v) ?? -1) < 0 || (k == "adapter_w" && snap.d(k) == 0) { s[k] = v }
             }
             shown = s
         }
@@ -129,7 +134,9 @@ final class SankeyModel: ObservableObject {
 
     func sheenEnabled() -> Bool {
         if reduceMotion() || flowMode == "never" { return false }
-        if flowMode == "on-ac" { return target?.b("on_ac") ?? false }
+        if flowMode == "on-ac" {
+            return (target?.b("on_ac") ?? false) && !(target?.b("adapter_input_disabled") ?? false)
+        }
         return true
     }
 
@@ -213,13 +220,21 @@ final class SankeyModel: ObservableObject {
         if onAc {
             let fromBat = -batW >= 0.05 ? -batW : 0
             let toBat = batW >= 0.05 ? batW : 0
-            let adToPc = max(sysW - fromBat, 0)
-            _ = add(0, "adapter", I18n.t("adapter"), adToPc + toBat, SankeyPalette.adapter)
+            let adapterW = max(s.d("adapter_w", max(sysW - fromBat, 0) + toBat), 0)
+            let adToPc = max(adapterW - toBat, 0)
+            // Hide an actually zero source, but do not erase genuine 0.x readings.
+            if adapterW > 0 {
+                let key = s.b("adapter_input_disabled") ? "adapterReading" : "adapter"
+                let node = add(0, "adapter", I18n.t(key), adapterW, SankeyPalette.adapter, key: key)
+                node.approx = s.s("adapter_input_source") == "balance-estimate"
+            }
             if fromBat > 0 { _ = add(0, "battery", I18n.t("battery"), fromBat, SankeyPalette.battery) }
             if toBat > 0 { _ = add(1, "batchg", I18n.t("battery"), toBat, SankeyPalette.battery) }
             _ = add(1, "pc", I18n.t("system"), sysW, SankeyPalette.pc)
-            flow("adapter", "batchg", toBat)
-            flow("adapter", "pc", adToPc)
+            if adapterW > 0 {
+                flow("adapter", "batchg", toBat)
+                flow("adapter", "pc", adToPc)
+            }
             flow("battery", "pc", fromBat)
         } else {
             _ = add(0, "battery", I18n.t("battery"), sysW, SankeyPalette.battery)

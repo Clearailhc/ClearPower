@@ -41,6 +41,15 @@ final class AppState: ObservableObject {
         prefs.$contentAware.sink { [weak self] _ in DispatchQueue.main.async { self?.syncContentTimer() } }.store(in: &cancellables)
         prefs.objectWillChange.sink { [weak self] in DispatchQueue.main.async { self?.objectWillChange.send() } }.store(in: &cancellables)
         calibration.onCancel = { [weak self] in self?.engine.cancelCalibration() }
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self else { return }
+                // A calibration spanning two display configurations is invalid.
+                self.engine.cancelCalibration()
+                self.calibration.hide()
+                self.engine.touch()
+            }.store(in: &cancellables)
         helper.refresh()
         engine.start()
     }

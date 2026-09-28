@@ -2,6 +2,18 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.6.1] — 2026-09-28
+
+- Refresh window layout and Canvas scale when displays or backing scales change;
+  constrain popovers/settings to the current display's usable area and recover
+  settings windows stranded on a removed display. Cancel calibration on reconfiguration.
+- Read adapter-disable state directly from hardware. Label residual input readings
+  explicitly, preserve actual fractional measurements, hide exactly zero input
+  nodes, and reset stale smoothing when the observed power source changes.
+- Draw input from its reported value rather than recomputing it in the UI; mark
+  balance-based estimates. Compatible 0.6.0 helpers no longer prompt for reinstall.
+- 34 Swift tests, including app graph and hosting-window layout regressions.
+
 ## [0.6.0] — 2026-09-28
 
 ### Fixed

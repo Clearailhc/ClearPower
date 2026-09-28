@@ -18,6 +18,9 @@ final class HelperClient {
     var supportedLimits: [Int] { state["supported_limits"] as? [Int] ?? Array(50...100) }
     var controlError: String { state.s("control_error") }
     var helperVersion: String { state.s("version", "") }
+    var needsUpdate: Bool {
+        !helperVersion.isEmpty && helperVersion.compare(ClearPowerVersion.minimumHelperVersion, options: .numeric) == .orderedAscending
+    }
 
     /// Keys merged into every engine snapshot (same names as the Linux daemon).
     var snapshotOverlay: [String: Any] {

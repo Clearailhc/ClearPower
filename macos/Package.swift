@@ -35,6 +35,7 @@ let package = Package(
             name: "ClearPowerApp",
             dependencies: ["ClearPowerCore", "MacBackend", "ClearPowerIPC"]),
         .testTarget(name: "MacBackendTests", dependencies: ["MacBackend", "ClearPowerCore"]),
+        .testTarget(name: "ClearPowerAppTests", dependencies: ["ClearPowerApp"]),
         .testTarget(
             name: "ClearPowerCoreTests",
             dependencies: ["ClearPowerCore"],

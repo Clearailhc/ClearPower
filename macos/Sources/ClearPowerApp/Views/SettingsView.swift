@@ -15,6 +15,7 @@ struct SettingsView: View {
     @ViewState private var limitTask: DispatchWorkItem? = nil
     @ViewState private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @ViewState private var helperMessage = ""
+    @ViewState private var display = WindowDisplayMetrics()
 
     init(prefs: Prefs) { self.prefs = prefs }
 
@@ -92,7 +93,10 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520, height: 640)
+        .frame(width: display.size(width: 520, height: 640).width,
+               height: display.size(width: 520, height: 640).height)
+        .background(WindowDisplayObserver { display = $0 })
+        .environment(\.displayScale, display.scale)
         .onAppear { limitValue = state.limit }
         .onChange(of: state.limit) { _, v in if limitTask == nil { limitValue = v } }
         .id(prefs.langVersion)
@@ -102,7 +106,7 @@ struct SettingsView: View {
         let installed = HelperInstaller.installed
         let online = state.helperOnline
         let v = state.helper.helperVersion
-        let outdated = online && !v.isEmpty && v != ClearPowerVersion.string
+        let outdated = online && state.helper.needsUpdate
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {

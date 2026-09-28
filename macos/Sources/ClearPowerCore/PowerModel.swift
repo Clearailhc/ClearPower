@@ -22,6 +22,7 @@ public struct RawPower {
     public var display: Double = -1  // measured backlight; calibration remains the fallback
     public var packageComplete = true
     public var batteryKnown = true
+    public var adapterDisabled: Bool? = nil
     public var psys: Double = -1
     public var package: Double = -1
     public var core: Double = -1
@@ -42,6 +43,9 @@ public struct RawPower {
 public struct PowerModel {
     static let smoothed = ["bat_w", "psys", "package", "core", "uncore", "dram", "dc_in", "display"]
     private var ema: [String: Ema]
+    private var previousAC: Bool?
+    private var previousDisabled: Bool?
+    private var previousInputMeasured = false
     public private(set) var raw = RawPower()
 
     public init(smoothingS: Double) {
@@ -62,6 +66,20 @@ public struct PowerModel {
     public mutating func update(raw input: RawPower, onAC: Bool, now: Double,
                                 displayEmission: Double, displayOn: Bool) -> [String: Any] {
         raw = input
+        // Do not blend different supply states: unplugging or cutting the adapter
+        // must not retain the preceding charging current for several seconds.
+        let sourceObserved = previousInputMeasured || input.dcIn >= 0 || previousDisabled != nil || input.adapterDisabled != nil
+        if sourceObserved && previousAC != nil && (previousAC != onAC || previousDisabled != input.adapterDisabled) {
+            for key in Self.smoothed { ema[key]!.reset() }
+        }
+        previousAC = onAC
+        previousDisabled = input.adapterDisabled
+        previousInputMeasured = input.dcIn >= 0
+        if input.dcIn == 0 { ema["dc_in"]!.reset() }
+        if sourceObserved, let previousBattery = ema["bat_w"]!.value,
+           input.batW == 0 || previousBattery * input.batW < 0 {
+            ema["bat_w"]!.reset()
+        }
         // ---- smoothed inputs ----
         // bat_w is signed; the -1 sentinel logic must not apply to it.
         let batW = ema["bat_w"]!.update(input.batW, at: now)
@@ -122,6 +140,7 @@ public struct PowerModel {
         // adapter is too weak) plus the charge current. Battery draw on AC => two sources.
         var adapterW = (onAC && sysW > 0) ? (sysW - max(-batW, 0) + max(batW, 0)) : 0
         adapterW = max(adapterW, 0)
+        if onAC && dcIn >= 0 { adapterW = dcIn }
 
         return [
             "sys_w": sysW, "sys_source": sysSource,

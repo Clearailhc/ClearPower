@@ -7,10 +7,14 @@ import ClearPowerCore
 struct PopoverView: View {
     @EnvironmentObject var state: AppState
     @Environment(\.openWindow) private var openWindow
+    @ViewState private var display = WindowDisplayMetrics()
+    @ViewState private var contentHeight: CGFloat = 440
 
     var body: some View {
         let snap = state.snapshot
         let online = state.helperOnline
+        let size = display.size(width: 400, height: contentHeight)
+        ScrollView(.vertical) {
         VStack(alignment: .leading, spacing: 10) {
             if !online {
                 HStack {
@@ -20,7 +24,7 @@ struct PopoverView: View {
                 }
             }
             header
-            if online && state.helper.helperVersion != ClearPowerVersion.string {
+            if online && state.helper.needsUpdate {
                 HStack {
                     Text(I18n.t("helperUpdateNeeded", ["v": state.helper.helperVersion])).font(.caption)
                     Spacer()
@@ -48,7 +52,13 @@ struct PopoverView: View {
                 }
                 Text(state.healthText()).font(.callout).foregroundColor(.secondary)
             }
-            SankeyView(model: state.sankey)
+            if snap.b("on_ac") && snap.b("adapter_input_disabled") {
+                Text(I18n.t("adapterDisabledNote", ["w": fmtW(snap.d("dc_in_w_raw") >= 0 ?
+                    snap.d("dc_in_w_raw") : snap.d("telemetry_dc_in_w"))]))
+                    .font(.caption).foregroundColor(.secondary)
+                    .help(I18n.t("tipAdapterDisabled"))
+            }
+            SankeyView(model: state.sankey).id("\(display.screenID)-\(display.scale)-\(display.visibleFrame)")
             powerRow
             appsBox
             HStack {
@@ -57,7 +67,18 @@ struct PopoverView: View {
             }
         }
         .padding(EdgeInsets(top: 10, leading: 12, bottom: 14, trailing: 12))
-        .frame(width: 400)
+        .frame(width: size.width)
+        .background(GeometryReader { geometry in
+            Color.clear.preference(key: PopoverHeightKey.self, value: geometry.size.height)
+        })
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(width: size.width, height: size.height)
+        .onPreferenceChange(PopoverHeightKey.self) { height in
+            if height > 0 && abs(contentHeight - height) > 0.5 { contentHeight = height }
+        }
+        .background(WindowDisplayObserver { display = $0 })
+        .environment(\.displayScale, display.scale)
         .onAppear { state.setPopoverOpen(true) }
         .onDisappear { state.setPopoverOpen(false) }
         .id(state.prefs.langVersion)
@@ -145,6 +166,11 @@ struct PopoverView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) { state.helper.refresh() }
         }
     }
+}
+
+private struct PopoverHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 440
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
 }
 
 struct PillButtonStyle: ButtonStyle {

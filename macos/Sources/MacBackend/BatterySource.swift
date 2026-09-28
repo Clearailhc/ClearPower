@@ -107,6 +107,17 @@ public final class BatterySource {
 /// Whole-platform power from the SMC: PSTR (system total), PDTR (DC in from the adapter).
 public enum PlatformPower {
     public static var available: Bool { SMC.exists("PSTR") }
+    /// Read hardware, not the helper's cached intention (another charge limiter can
+    /// change the switch). Unknown stays unknown; this does not zero telemetry.
+    public static func adapterDisabled(read: (String) -> SMCValue? = SMC.read) -> Bool? {
+        for (key, off) in [("CH0I", UInt8(1)), ("CH0J", UInt8(1)), ("CHIE", UInt8(8))] {
+            if let bytes = read(key)?.bytes, bytes.count == 1 {
+                if bytes[0] == 0 { return false }
+                if bytes[0] == off { return true }
+            }
+        }
+        return nil
+    }
     public static func read() -> (systemW: Double, dcInW: Double) {
         (SMC.readFloat("PSTR") ?? -1, SMC.readFloat("PDTR") ?? -1)
     }

@@ -1,4 +1,5 @@
 import Foundation
+import CoreGraphics
 import Testing
 import ClearPowerCore
 @testable import MacBackend
@@ -49,6 +50,46 @@ struct BatteryCompatibilityTests {
 }
 
 struct PowerCompatibilityTests {
+    @Test func disabledAdapterDoesNotEraseMeasuredFractionalInput() {
+        var model = PowerModel(smoothingS: 5)
+        var raw = RawPower(batW: -12.7, psys: 13.1, package: 1, core: 0.6, uncore: 0.4, dram: -1)
+        raw.dcIn = 0.444; raw.adapterDisabled = true
+        let result = model.update(raw: raw, onAC: true, now: 0, displayEmission: -1, displayOn: true)
+        #expect(result.d("adapter_w") == 0.444)
+        #expect(abs(result.d("sys_w") - 13.144) < 1e-9)
+    }
+
+    @Test func sourceTransitionsDoNotRetainChargingOrInputPower() {
+        var model = PowerModel(smoothingS: 5)
+        var raw = RawPower(batW: 35, psys: 15, package: 3, core: 2, uncore: 1, dram: 1)
+        raw.dcIn = 50; raw.adapterDisabled = false
+        _ = model.update(raw: raw, onAC: true, now: 0, displayEmission: -1, displayOn: true)
+        raw.adapterDisabled = true; raw.dcIn = 0.444; raw.batW = -12.7
+        let disabled = model.update(raw: raw, onAC: true, now: 1, displayEmission: -1, displayOn: true)
+        #expect(disabled.d("adapter_w") == 0.444)
+        #expect(disabled.d("bat_w") == -12.7)
+        raw.dcIn = -1; raw.batW = -10
+        let unplugged = model.update(raw: raw, onAC: false, now: 2, displayEmission: -1, displayOn: true)
+        #expect(unplugged.d("adapter_w") == 0)
+        #expect(unplugged.d("sys_w") == 10)
+        raw.adapterDisabled = false; raw.dcIn = 20; raw.batW = 10
+        let replugged = model.update(raw: raw, onAC: true, now: 3, displayEmission: -1, displayOn: true)
+        #expect(replugged.d("adapter_w") == 20)
+        #expect(replugged.d("sys_w") == 10)
+        raw.dcIn = 0; raw.batW = -10
+        let zero = model.update(raw: raw, onAC: true, now: 4, displayEmission: -1, displayOn: true)
+        #expect(zero.d("adapter_w") == 0)
+        #expect(zero.d("bat_w") == -10)
+        #expect(zero.d("sys_w") == 10)
+    }
+
+    @Test func adapterReadbackUsesHardwareAndPreservesUnknown() {
+        #expect(PlatformPower.adapterDisabled { $0 == "CHIE" ? SMCValue(type: "hex_", bytes: [8]) : nil } == true)
+        #expect(PlatformPower.adapterDisabled { $0 == "CHIE" ? SMCValue(type: "hex_", bytes: [0]) : nil } == false)
+        #expect(PlatformPower.adapterDisabled { _ in nil } == nil)
+        #expect(PlatformPower.adapterDisabled { _ in SMCValue(type: "hex_", bytes: [255]) } == nil)
+        #expect(PlatformPower.adapterDisabled { $0 == "CH0I" ? SMCValue(type: "hex_", bytes: [1]) : nil } == true)
+    }
     @Test func measuredAdapterAndBatteryConserveBothChargingAndDischarging() {
         for battery in [35.0, 0.0, -12.0] {
             var model = PowerModel(smoothingS: 5)
@@ -99,6 +140,28 @@ struct PowerCompatibilityTests {
         #expect(abs((PowerSensors.cpu(chip: "Apple M3 Max") { rails[$0] } ?? 0) - 11.3) < 1e-9)
         #expect(PowerSensors.cpu(chip: "Apple M4 Max") { rails[$0] } == nil)
         #expect(PowerSensors.cpu(chip: "Apple M3 Max") { $0 == "PP5b" ? nil : rails[$0] } == nil)
+    }
+}
+
+struct WindowGeometryTests {
+    @Test func sizesStayInPointsAcrossRetinaAndSmallDisplays() {
+        let preferred = CGSize(width: 400, height: 700)
+        // These are AppKit point coordinates; a 2x backing store must not double them.
+        let retina = CGRect(x: 0, y: 38, width: 1512, height: 906)
+        let external = CGRect(x: -1920, y: 0, width: 1920, height: 1055)
+        #expect(WindowGeometry.contentSize(preferred: preferred, visibleFrame: retina) == preferred)
+        #expect(WindowGeometry.contentSize(preferred: preferred, visibleFrame: external) == preferred)
+        let small = WindowGeometry.contentSize(preferred: preferred, visibleFrame: CGRect(x: 0, y: 0, width: 360, height: 480))
+        #expect(small == CGSize(width: 336, height: 456))
+    }
+
+    @Test func unpluggedScreenWindowsFitRemainingScreenWithNegativeOrigins() {
+        let remaining = CGRect(x: -1280, y: 30, width: 1280, height: 690)
+        let stranded = CGRect(x: 1700, y: -500, width: 520, height: 800)
+        let moved = WindowGeometry.contained(stranded, in: remaining)
+        #expect(remaining.contains(moved))
+        #expect(moved.width == 520 && moved.height == 690)
+        #expect(WindowGeometry.contained(moved, in: remaining) == moved)
     }
 }
 

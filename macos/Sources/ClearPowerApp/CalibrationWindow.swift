@@ -9,7 +9,10 @@ final class CalibrationWindow {
     var onCancel: (() -> Void)?
 
     func show() {
-        guard window == nil, let screen = NSScreen.main else { return }
+        guard window == nil, let screen = NSScreen.screens.first(where: {
+            guard let id = $0.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber else { return false }
+            return CGDisplayIsBuiltin(id.uint32Value) != 0
+        }) else { return }
         let w = ClickWindow(contentRect: screen.frame, styleMask: .borderless, backing: .buffered, defer: false)
         w.level = .screenSaver
         w.backgroundColor = .white
@@ -23,6 +26,7 @@ final class CalibrationWindow {
         l.font = NSFont.systemFont(ofSize: 18)
         l.maximumNumberOfLines = 2
         l.frame = NSRect(x: 0, y: 48, width: screen.frame.width, height: 60)
+        l.autoresizingMask = [.width]
         w.contentView?.addSubview(l)
         label = l
         w.makeKeyAndOrderFront(nil)

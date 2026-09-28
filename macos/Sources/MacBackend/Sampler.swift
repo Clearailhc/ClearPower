@@ -81,10 +81,12 @@ public final class Sampler {
         snap.merge(bl) { $1 }
         snap.merge(thermalRead(hot: hot, now: now)) { $1 }
         let onAC = bat.b("on_ac", true)
+        let adapterDisabled = PlatformPower.adapterDisabled()
 
         var raw = RawPower()
         raw.batW = bat.d("bat_w", 0)
         raw.batteryKnown = bat.b("bat_power_available")
+        raw.adapterDisabled = adapterDisabled
         raw.psys = PowerSensors.nonnegative(plat.systemW) ?? bat.d("telemetry_sys_w")
         raw.dcIn = onAC ? (PowerSensors.nonnegative(plat.dcInW) ?? bat.d("telemetry_dc_in_w")) : -1
         raw.display = PowerSensors.display(chip: PowerSensors.chip, read: SMC.readFloat) ?? -1
@@ -99,6 +101,10 @@ public final class Sampler {
         // The SMC total is the same physical quantity as RAPL psys but a different sensor.
         if snap.s("sys_source") == "psys" { snap["sys_source"] = "smc" }
         snap["dc_in_w_raw"] = plat.dcInW
+        snap["adapter_input_source"] = !onAC ? "disconnected" :
+            (PowerSensors.nonnegative(plat.dcInW) != nil ? "smc-pdtr" :
+                (bat.d("telemetry_dc_in_w") >= 0 ? "iokit" : "balance-estimate"))
+        if let adapterDisabled { snap["adapter_input_disabled"] = adapterDisabled }
         snap["cpu_source"] = energy.cpuSource
         snap["energy_counters_stalled"] = !energy.complete
         snap["display_source"] = raw.display >= 0 ? "smc" : (emission >= 0 ? "calibration" : "none")
