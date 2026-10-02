@@ -29,11 +29,25 @@ class Procs:
         return min(w for _, w in self._floor)
 
     def maybe_sample(self, package_w, n=3):
+        """Attribute (package_w - idle floor) by CPU share.
+
+        Every platform feeds the same arithmetic: package_w is the whole machine's CPU power and
+        the divisor is the CPU share, so the units cancel and the split is correct whatever a
+        given platform's cpu_percent() is normalised to (psutil uses the whole-machine ratio,
+        macOS libproc and the Windows process deltas use a per-core percentage).
+
+        An unknown package power (-1: no RAPL, or the first sample after resume) must never reach
+        the floor: the floor is a sliding minimum over ten minutes, so a single bogus entry sticks
+        for the whole window and every later budget is computed against it. The sample is skipped
+        outright and the interval is left untouched, so the next call tries again.
+        """
         now = time.monotonic()
         if psutil is None or now < self._next:
             return self.top
+        if package_w < 0:
+            return self.top
         self._next = now + self.interval
-        floor = self._idle_floor(now, package_w) if package_w >= 0 else 0.0
+        floor = self._idle_floor(now, package_w)
         budget = max(package_w - floor, 0.0)
         agg = collections.Counter()
         total = 0.0

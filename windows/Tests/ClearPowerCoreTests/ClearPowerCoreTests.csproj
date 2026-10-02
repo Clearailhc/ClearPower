@@ -11,6 +11,8 @@
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <ProjectReference Include="..\..\Sources\ClearPowerCore\ClearPowerCore.csproj" />
+    <!-- The lifetime tests drive the real Windows sampler (package-power settle gate). -->
+    <ProjectReference Include="..\..\Sources\WinBackend\WinBackend.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\macos\Tests\ClearPowerCoreTests\Fixtures\*.json" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

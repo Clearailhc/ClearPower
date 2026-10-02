@@ -22,14 +22,23 @@ public struct ProcessBudget {
 
     public var due: Bool { true }
 
-    /// `usage` is (process name, cpu percent) for every process with cpu > 0. Returns the
-    /// top-n names with their share of the budget. Returns the previous result if called
-    /// before `interval` has elapsed (pass `force` to bypass).
+    /// `usage` is (process name, cpu percent) for every process with cpu > 0, where keeping one
+    /// core fully busy reports 100 (libproc rusage and the psutil/wall-clock convention agree).
+    /// Returns the top-n names with their share of the budget. Returns the previous result if
+    /// called before `interval` has elapsed (pass `force` to bypass).
+    ///
+    /// An unknown package power (-1: no SoC sensor, a counter stall, or the first sample after
+    /// wake) must never reach the floor. The floor is a sliding minimum over ten minutes, so one
+    /// bogus entry sticks for the whole window: recording -1 as 0 W makes every later budget the
+    /// full package power, and recording a near-zero reading as the floor hides every
+    /// application. An unusable sample is skipped outright, and the interval is left untouched so
+    /// the next tick samples again instead of waiting out an interval for nothing.
     public mutating func sample(now: Double, packageW: Double, usage: () -> [(String, Double)],
                                 n: Int = 3, force: Bool = false) -> [(name: String, w: Double, cpuPct: Double)] {
         if now < next && !force { return top }
+        if packageW < 0 { return top }          // unknown power: leave both the floor and the interval alone
         next = now + interval
-        let fl = packageW >= 0 ? idleFloor(now: now, packageW: packageW) : 0
+        let fl = idleFloor(now: now, packageW: packageW)
         let budget = max(packageW - fl, 0)
         var agg: [String: Double] = [:]
         var total = 0.0

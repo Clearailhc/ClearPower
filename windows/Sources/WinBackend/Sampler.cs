@@ -28,6 +28,21 @@ namespace ClearPower.Win
         public bool EnergyAvailable => Energy.Available;
         public Action<string> Log { get; set; } = _ => { };
 
+        /// <summary>
+        /// Package (SoC) power for the per-application attribution: the smoothed value, or -1 while
+        /// it is still an unsettled average (startup ramp, or the ramp after a counter reset such
+        /// as resume from sleep). The attribution keeps a ten-minute rolling minimum of whatever it
+        /// is given, so an unsettled reading must be reported as unknown rather than as a number.
+        /// </summary>
+        public double PackageForBudget
+        {
+            get
+            {
+                var p = Last.D("package_w");
+                return p > 0 && _model.IsPackageSettled ? p : -1.0;
+            }
+        }
+
         public Sampler(double smoothingS, DisplayCalibration? displayCal)
         {
             _model = new PowerModel(smoothingS);

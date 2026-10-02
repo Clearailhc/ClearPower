@@ -117,7 +117,7 @@ namespace ClearPower.Win
                 snap.MergeFrom(DisplayCal.SnapshotKeys);
                 History.Add(snap);
                 if (hot)
-                    TopProcesses = _procs.Sample(now, snap.D("package_w"), () => _procSource.Usage(now));
+                    TopProcesses = _procs.Sample(now, Sampler.PackageForBudget, () => _procSource.Usage(now));
                 Snapshot = snap;
                 if (ended) ChargeStateChanged?.Invoke();
                 Sample?.Invoke(snap);

@@ -55,6 +55,14 @@ namespace ClearPower.Core
         private readonly Dictionary<string, Ema> _ema = new Dictionary<string, Ema>();
         public RawPower Raw { get; private set; } = RawPower.Empty;
 
+        /// <summary>
+        /// True when the smoothed package (SoC) power is a settled average of real samples. The
+        /// per-application attribution subtracts a ten-minute *minimum* of this value, so it must
+        /// not ingest the ramp after startup or after a counter reset (resume from sleep): one low
+        /// sample would be pinned as the floor for the whole window and hide every application.
+        /// </summary>
+        public bool IsPackageSettled => _ema["package"].Settled;
+
         public PowerModel(double smoothingS)
         {
             foreach (var k in Smoothed) _ema[k] = new Ema(smoothingS);

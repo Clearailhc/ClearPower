@@ -303,10 +303,18 @@ namespace ClearPower.App
         {
             var procs = _state.Engine.GetTopProcesses(3);
             Apps.Children.Clear();
+            // Three distinct states, exactly as on macOS: without per-block energy counters there is
+            // no CPU power to attribute at all, so claiming "no app is using significant energy"
+            // would be a lie. -1 means unknown/unavailable, never zero.
+            if ((_state.Snapshot?.D("cpu_w") ?? -1) < 0)
+            {
+                Apps.Children.Add(AppsMessage(I18n.T("appPowerUnavailable")));
+                return;
+            }
             var sig = procs.Where(p => p.w >= AppMinW).ToList();
             if (sig.Count == 0)
             {
-                Apps.Children.Add(new TextBlock { Text = I18n.T("noApps"), HorizontalAlignment = HorizontalAlignment.Center, Foreground = (Brush)FindResource("DimBrush"), FontSize = 12 });
+                Apps.Children.Add(AppsMessage(I18n.T("noApps")));
                 return;
             }
             foreach (var (name, w, _) in sig)
@@ -321,5 +329,14 @@ namespace ClearPower.App
                 Apps.Children.Add(row);
             }
         }
+
+        private TextBlock AppsMessage(string text) => new TextBlock
+        {
+            Text = text,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap,
+            Foreground = (Brush)FindResource("DimBrush"),
+            FontSize = 12,
+        };
     }
 }

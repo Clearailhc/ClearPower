@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ClearPower.Core;
+using ClearPower.Win;
 using Xunit;
 
 namespace ClearPower.Core.Tests
@@ -279,6 +280,104 @@ namespace ClearPower.Core.Tests
             Assert.Equal("b", top[1].name); Assert.Equal("d", top[2].name);
             // Called again within interval -> cached
             Assert.Equal("a", pb.Sample(11, 20, () => new[] { ("z", 1.0) }).First().name);
+        }
+
+        /// <summary>
+        /// Regression: an unknown package power used to be recorded as a 0 W floor entry. Because
+        /// the floor is a sliding minimum over ten minutes, that single entry made every later
+        /// budget the full package power, and it could not age out for the whole window.
+        /// </summary>
+        [Fact]
+        public void UnknownPackagePowerDoesNotPoisonTheFloor()
+        {
+            var pb = new ProcessBudget(3, 600);
+            var usage = new[] { ("app", 100.0) };
+
+            // -1 = RAPL/Energy Meter not ready yet (or the first sample after resume). It must not
+            // be recorded: the previous (empty) result comes back and the floor stays untouched.
+            Assert.Empty(pb.Sample(0, -1, () => usage));
+
+            // A real reading establishes the floor: budget = 7 - 7 = 0, so the app is listed at 0 W.
+            var first = pb.Sample(1, 7, () => usage);
+            Assert.Single(first);
+            Fx.Near(first[0].w, 0.0, 1e-9, "the first real reading is its own floor");
+
+            // A later rise is attributed as the *difference*: 8 - 7 = 1 W, not 8 W. Without the fix
+            // the poisoned 0 W floor would have made this the whole 8 W. (t=4 is past the 3 s
+            // interval the t=1 sample opened; an earlier call would just return the cached result.)
+            var top = pb.Sample(4, 8, () => usage);
+            Assert.Single(top);
+            Fx.Near(top[0].w, 1.0, 1e-9, "budget must be package_w - floor");
+        }
+
+        /// <summary>
+        /// Regression: an unusable sample used to consume a whole sampling interval, so the next
+        /// attempt was three seconds away even though nothing had been computed.
+        /// </summary>
+        [Fact]
+        public void UnknownPackagePowerDoesNotConsumeTheInterval()
+        {
+            var pb = new ProcessBudget(3, 600);
+            var usage = new[] { ("app", 100.0) };
+            // t=0: floor 1, budget 0 -> the app is listed at 0 W and the interval opens until t=3.
+            var baseline = pb.Sample(0, 1, () => usage);
+            Assert.Single(baseline);
+            Fx.Near(baseline[0].w, 0.0, 1e-9, "the first reading is its own floor");
+
+            // t=1: unknown power. The cached row comes back, and the interval must stay as it was —
+            // the old code consumed it here, pushing the next real attempt out to t=4 instead of t=3.
+            var skipped = pb.Sample(1, -1, () => usage);
+            Assert.Single(skipped);
+            Fx.Near(skipped[0].w, 0.0, 1e-9, "an unusable sample must not fabricate a new result");
+
+            // t=3: the interval the t=0 sample opened has now elapsed, so a real reading is taken.
+            var top = pb.Sample(3, 2, () => usage);
+            Assert.Single(top);
+            Fx.Near(top[0].w, 1.0, 1e-9, "the skipped sample must not have extended the interval");
+        }
+    }
+
+    public class EmaSettleTests
+    {
+        /// <summary>
+        /// Regression: the per-application attribution subtracts a ten-minute *minimum* of package
+        /// power, so a sample taken while the average is still ramping used to become the floor.
+        /// On Windows the first Energy Meter read is unavailable and the following reads ramp up
+        /// from it, which pinned the floor near zero and hid every application.
+        /// </summary>
+        [Fact]
+        public void SettledOnlyAfterOneTimeConstant()
+        {
+            var e = new Ema(5.0);
+            Assert.False(e.Settled);
+            e.Update(7.0, 0);
+            Assert.False(e.Settled);          // first value is not yet an average of anything
+            e.Update(8.0, 1);
+            Assert.False(e.Settled);
+            e.Update(8.0, 6);
+            Assert.True(e.Settled);           // one tau of real samples has passed
+            e.Reset();
+            Assert.False(e.Settled);          // resume from sleep ramps again
+        }
+
+        /// <summary>
+        /// End-to-end guard for the Windows path: right after construction, and for as long as the
+        /// package average is still ramping, the attribution must be told "unknown" rather than be
+        /// handed a number that would be pinned as the ten-minute floor.
+        /// </summary>
+        [Fact]
+        public void PackageForBudgetStaysUnknownWhileRamping()
+        {
+            var s = new Sampler(5.0, null);
+            Assert.Equal(-1.0, s.PackageForBudget, 9);   // nothing sampled yet
+            s.Sample();
+            Assert.Equal(-1.0, s.PackageForBudget, 9);   // a single value is not yet an average
+            for (int i = 0; i < 3; i++)
+            {
+                System.Threading.Thread.Sleep(600);
+                s.Sample();
+            }
+            Assert.Equal(-1.0, s.PackageForBudget, 9);   // still inside the first time constant
         }
     }
 
