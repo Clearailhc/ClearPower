@@ -12,6 +12,10 @@
     <ApplicationIcon>Resources/ClearPower.ico</ApplicationIcon>
     <AutoGenerateBindingRedirects>false</AutoGenerateBindingRedirects>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- .NET Framework defaults this off; without it WPF ignores the PerMonitorV2 awareness the
+         manifest declares and treats every monitor as the primary one's scale, which is what made
+         the popover drift and mis-size on a scaled or secondary display. -->
+    <EnablePerMonitorDpiAwareness>true</EnablePerMonitorDpiAwareness>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Management" />

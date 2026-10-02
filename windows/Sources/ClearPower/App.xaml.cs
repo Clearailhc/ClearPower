@@ -76,8 +76,10 @@ namespace ClearPower.App
                 try
                 {
                     var p = _popover!;
-                    p.Deactivated -= null;
-                    p.ShowAt(null, new TrayIcon.POINT { X = 400, Y = 400 });
+                    p.ShotMode = true;   // never takes focus, so ignore the deactivation that hides it
+                    // ShowAt takes a physical-pixel anchor; the shot anchor is a layout coordinate.
+                    var scale = Monitors.ForPoint(0, 0).Fallback ? 1.0 : Monitors.ForPoint(0, 0).Scale;
+                    p.ShowAt(null, new TrayIcon.POINT { X = (int)Math.Round(400 * scale), Y = (int)Math.Round(400 * scale) });
                     p.UpdateLayout();
                     Save(p, path);
                     var s = new SettingsWindow(_state!) { WindowStartupLocation = WindowStartupLocation.Manual, Left = 10, Top = 10 };

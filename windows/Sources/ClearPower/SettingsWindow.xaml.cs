@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Threading;
 using ClearPower.Core;
+using ClearPower.Win;
 using Microsoft.Win32;
 
 namespace ClearPower.App
@@ -26,8 +27,13 @@ namespace ClearPower.App
         {
             InitializeComponent();
             _state = state;
-            // Never taller than the screen: the content scrolls instead.
-            MaxHeight = Math.Max(400, SystemParameters.WorkArea.Height - 40);
+            // Sized against the monitor this window is actually on. SystemParameters.WorkArea is
+            // always the primary monitor's and always in raw pixels, so on a scaled primary display
+            // it is understated and on any other display it is wrong twice over. The window's own
+            // height is the real limit; the old Math.Max(400, ...) floor could force the window
+            // taller than a small screen and leave it hanging off the edge.
+            SourceInitialized += (_, _) => FitToMonitor();
+            SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
             _limitTimer.Tick += (_, _) =>
             {
                 _limitTimer.Stop();
@@ -42,8 +48,32 @@ namespace ClearPower.App
                 _state.SampleOnUi -= OnSample;
                 _state.ChargeStateChangedOnUi -= SyncLimit;
                 _state.LanguageChanged -= Retext;
+                SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
             };
             Retext();
+        }
+
+        private void OnDisplaySettingsChanged(object? sender, EventArgs e) => Dispatcher.BeginInvoke(new Action(FitToMonitor));
+
+        /// <summary>
+        /// Constrain to the monitor's usable area and pull the window back into it. This also
+        /// recovers a window stranded on a display that has since been unplugged, because
+        /// Monitors.ForWindow resolves the nearest surviving monitor for an off-screen centre.
+        /// </summary>
+        private void FitToMonitor()
+        {
+            var hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero) return;
+            var wa = Monitors.ForWindow(hwnd);
+            if (wa.Fallback || wa.Dip.H < 1 || wa.Dip.W < 1) return;
+
+            MaxHeight = Math.Max(200, wa.Dip.H - 24);
+            UpdateLayout();
+            var w = Math.Min(double.IsNaN(ActualWidth) || ActualWidth <= 1 ? Width : ActualWidth, wa.Dip.W - 8);
+            var h = Math.Min(double.IsNaN(ActualHeight) || ActualHeight <= 1 ? MinHeight : ActualHeight, MaxHeight);
+            var (x, y) = WindowGeometry.Center(w, h, wa.Dip);
+            Left = x;
+            Top = y;
         }
 
         private void Fill(ComboBox cb, string[] nicks, string[] labels, string current)

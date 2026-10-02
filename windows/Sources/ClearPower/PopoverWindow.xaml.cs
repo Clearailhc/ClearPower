@@ -26,9 +26,19 @@ namespace ClearPower.App
         private readonly AppState _state;
         private readonly DispatcherTimer _appsTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         private readonly DispatcherTimer _contentTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(ContentIntervalS) };
+        /// <summary>Display reconfiguration arrives as a burst of messages; act once it settles.</summary>
+        private readonly DispatcherTimer _layoutTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(120) };
         public DateTime HiddenAt { get; private set; } = DateTime.MinValue;
         private DateTime _shownAt = DateTime.MinValue;
         private bool _reactivated;
+        private HwndSource? _source;
+        /// <summary>Where the popover is anchored, in physical screen pixels, kept so it can be
+        /// re-placed when the display configuration or the window's DPI scale changes.</summary>
+        private TrayIcon.RECT? _anchorRect;
+        private TrayIcon.POINT _anchorCursor;
+        private bool _positioned;
+
+        private const int WM_DISPLAYCHANGE = 0x007E;
 
         [DllImport("dwmapi.dll")] private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int value, int size);
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hwnd);
@@ -39,6 +49,9 @@ namespace ClearPower.App
             _state = state;
             _appsTimer.Tick += (_, _) => PollApps();
             _contentTimer.Tick += (_, _) => SampleContent();
+            _layoutTimer.Tick += (_, _) => { _layoutTimer.Stop(); Place(); };
+            SizeChanged += (_, _) => { if (IsVisible) Place(); };
+            LayoutUpdated += (_, _) => { if (IsVisible && !_positioned) Place(); };
             Deactivated += (_, _) =>
             {
                 // Explorer sometimes takes the foreground back right after the tray click;
@@ -57,9 +70,19 @@ namespace ClearPower.App
                 var hwnd = new WindowInteropHelper(this).Handle;
                 int round = 2; DwmSetWindowAttribute(hwnd, 33 /* DWMWA_WINDOW_CORNER_PREFERENCE */, ref round, 4);
                 int dark = Theme.AppsLight ? 0 : 1; DwmSetWindowAttribute(hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, ref dark, 4);
+                _source = HwndSource.FromHwnd(hwnd);
+                _source?.AddHook(WndProc);
             };
             Sankey.FlowMode = _state.Prefs.FlowAnimation;
             Retext();
+        }
+
+        /// <summary>Adding, removing or re-scaling a display invalidates the work area and the scale
+        /// cached for the anchor screen, so re-resolve both once the burst of messages settles.</summary>
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == WM_DISPLAYCHANGE) { _layoutTimer.Stop(); _layoutTimer.Start(); }
+            return IntPtr.Zero;
         }
 
         // ---- show / hide ----------------------------------------------------------------
@@ -70,32 +93,13 @@ namespace ClearPower.App
             RefreshAll();
             _shownAt = DateTime.UtcNow;
             _reactivated = false;
+            _anchorRect = iconRect;
+            _anchorCursor = cursor;
+            _positioned = false;
             Opacity = 0;
             Show();
             UpdateLayout();
-            var src = PresentationSource.FromVisual(this);
-            var toDip = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
-            var work = SystemParameters.WorkArea;
-            double ax, ay; bool above = true;
-            if (iconRect != null)
-            {
-                var r = iconRect.Value;
-                var tl = toDip.Transform(new Point(r.Left, r.Top));
-                var br = toDip.Transform(new Point(r.Right, r.Bottom));
-                ax = (tl.X + br.X) / 2;
-                above = tl.Y > work.Top + work.Height / 2;
-                ay = above ? tl.Y - 8 : br.Y + 8;
-            }
-            else
-            {
-                var c = toDip.Transform(new Point(cursor.X, cursor.Y));
-                ax = c.X; ay = c.Y - 8;
-            }
-            var w = ActualWidth; var h = ActualHeight;
-            var left = Math.Max(work.Left + 4, Math.Min(ax - w / 2, work.Right - w - 4));
-            var top = above ? ay - h : ay;
-            top = Math.Max(work.Top + 4, Math.Min(top, work.Bottom - h - 4));
-            Left = left; Top = top;
+            Place();
             Opacity = 1;
             Activate();
             SetForegroundWindow(new WindowInteropHelper(this).Handle);
@@ -105,15 +109,68 @@ namespace ClearPower.App
             SyncContentTimer();
         }
 
-        public void HidePopover()
+        /// <summary>
+        /// Place the popover against its anchor using the work area of *the monitor the anchor is
+        /// on*, converted at that monitor's scale. Re-entrant on purpose: it runs again once
+        /// SizeToContent has settled the real height, and again after a display change, so the
+        /// window can never end up clamped to the primary monitor's box or left off-screen.
+        /// </summary>
+        private void Place()
         {
             if (!IsVisible) return;
+            double w = ActualWidth, h = ActualHeight;
+            if (double.IsNaN(w) || double.IsNaN(h) || w <= 1 || h <= 1) return;   // not measured yet
+
+            // Anchor in physical pixels: the tray icon when we have it, else the click point.
+            LayoutRect anchor;
+            if (_anchorRect != null)
+            {
+                var r = _anchorRect.Value;
+                anchor = new LayoutRect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top);
+            }
+            else
+            {
+                anchor = new LayoutRect(_anchorCursor.X, _anchorCursor.Y, 0, 0);
+            }
+
+            var wa = Monitors.ForPoint(anchor.X + anchor.W / 2, anchor.Y + anchor.H / 2);
+            var scale = wa.Fallback ? 1.0 : wa.Scale;
+            var work = wa.Fallback ? PhysicalPrimaryWorkArea() : wa.Dip;
+
+            var target = WindowGeometry.PlacementForPhysicalAnchor(anchor, w, h, work, scale);
+            _positioned = true;
+            // LayoutUpdated runs often; only touch the window when the placement actually changed.
+            if (Math.Abs(Left - target.X) > 0.5 || Math.Abs(Top - target.Y) > 0.5)
+            {
+                Left = target.X;
+                Top = target.Y;
+            }
+        }
+
+        /// <summary>Last resort when Windows will not answer: the primary monitor's work area, at
+        /// whatever scale WPF is currently laying this window out in.</summary>
+        private LayoutRect PhysicalPrimaryWorkArea()
+        {
+            var src = PresentationSource.FromVisual(this);
+            var dip = src?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+            var work = SystemParameters.WorkArea;
+            var tl = dip.Transform(new Point(work.Left, work.Top));
+            var br = dip.Transform(new Point(work.Right, work.Bottom));
+            return new LayoutRect(tl.X, tl.Y, br.X - tl.X, br.Y - tl.Y);
+        }
+
+        public void HidePopover()
+        {
+            if (ShotMode || !IsVisible) return;
             HiddenAt = DateTime.UtcNow;
             Hide();
             Sankey.SetActive(false);
             _appsTimer.Stop();
             SyncContentTimer();
         }
+
+        /// <summary>--shot mode: keep the window up even though it never gets focus.</summary>
+        public bool ShotMode { get; set; }
 
         // ---- charge control -------------------------------------------------------------
         private void OnCycleLimit(object sender, RoutedEventArgs e)

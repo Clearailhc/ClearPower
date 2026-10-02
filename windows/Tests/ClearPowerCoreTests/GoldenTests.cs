@@ -381,6 +381,180 @@ namespace ClearPower.Core.Tests
         }
     }
 
+    /// <summary>
+    /// The popover anchoring arithmetic with the numbers measured on the development machine: a
+    /// 2880x1800 panel at 225 %. GetMonitorInfo and GetDpiForMonitor report the *native* work area
+    /// of 2880x1692 at 2.25, which is 1280x752 layout units - while SystemParameters.WorkArea
+    /// reports that very same "1280x752" as if it were already layout units, i.e. 2.25x too small
+    /// in each direction. Anchoring the popover to that box is what made it drift.
+    /// </summary>
+    public class WindowGeometryTests
+    {
+        /// <summary>The real usable area in layout units: 2880x1692 native / 2.25.</summary>
+        private static readonly LayoutRect Work = new LayoutRect(0, 0, 1280, 752);
+
+        /// <summary>The tray icon as the app receives it from Shell_NotifyIconGetRect and then
+        /// divides by that monitor's scale, which is what PopoverWindow.Place does.</summary>
+        private static readonly LayoutRect Tray = new LayoutRect(1180 / 2.25, 1692 / 2.25, 20 / 2.25, 20 / 2.25);
+
+        /// <summary>Absolute comparison: Fx.Near is relative, far too loose for pixel geometry.</summary>
+        private static void Near(double actual, double expected, double tol, string msg = "")
+            => Assert.True(Math.Abs(actual - expected) <= tol, $"{msg}: got {actual}, expected {expected}");
+
+        [Fact]
+        public void PopoverSitsAboveTheTrayAndInsideTheWorkArea()
+        {
+            var p = WindowGeometry.Placement(Tray, 400, 230, Work);
+            Near(p.Y + p.H, Tray.Y - 8, 0.001, "rests just above the icon");
+            Near(p.X, Tray.X + Tray.W / 2 - 200, 0.001, "centred on the anchor");
+            Assert.True(p.X >= Work.X && p.X + p.W <= Work.Right + 0.001, "horizontally inside");
+            Assert.True(p.Y >= Work.Y && p.Y + p.H <= Work.Bottom + 0.001, "vertically inside");
+        }
+
+        /// <summary>
+        /// Regression for the reported drift: the old code clamped against SystemParameters.WorkArea
+        /// (1280x752 raw pixels standing in for a 2880x1692 native work area) and transformed the
+        /// tray rect with whatever DPI the window was already on. Here that put the popover at
+        /// 440,556 instead of the correct 328.9,514 - and worse on a secondary display.
+        /// </summary>
+        [Fact]
+        public void PopoverIsAnchoredInTheTargetMonitorsUnitsNotTheWindowsCurrentOnes()
+        {
+            // The 225 % primary display: native work area 2880x1692, physical icon at 1180,1692.
+            var p = WindowGeometry.PlacementForPhysicalAnchor(
+                new LayoutRect(1180, 1692, 20, 20), 400, 230, new LayoutRect(0, 0, 1280, 752), 2.25);
+            Near(p.X, 328.8888888888889, 0.001, "centred on the icon in layout units");
+            Near(p.Y, 514.0, 0.001, "directly above the icon, inside the work area");
+        }
+
+        /// <summary>
+        /// The cross-monitor case the old code could not represent at all: the same window being
+        /// placed on a 100 % secondary display, whose work area has a negative origin. The identity
+        /// of the monitor decides the conversion, not where the popover happens to be right now.
+        /// </summary>
+        [Fact]
+        public void SecondDisplayAtDifferentScaleUsesItsOwnConversion()
+        {
+            var work = new LayoutRect(-1920, 0, 1920, 1040);        // secondary, 100 %, left of primary
+            var p = WindowGeometry.PlacementForPhysicalAnchor(
+                new LayoutRect(-900, 1010, 24, 24), 400, 230, work, 1.0);
+            Near(p.X, -900 + 12 - 200, 0.001, "centred on the physical icon at 100 %");
+            Near(p.Y + p.H, 1010 - 8, 0.001, "anchored above it");
+            Assert.True(p.X >= work.X && p.X + p.W <= work.Right + 0.001, "inside the secondary display");
+        }
+
+        /// <summary>
+        /// A secondary display at 150 % to the right of the primary: a 400-unit popover is 600
+        /// native pixels wide there, and the anchor conversion must use 1.5 rather than the
+        /// primary's scale or 1.0.
+        /// </summary>
+        [Fact]
+        public void ScaledSecondaryDisplayConvertsWithItsOwnFactor()
+        {
+            // A 2560x1440 secondary display at 150 % sits to the right of a 1280-unit primary, so
+            // its work area starts at x=1280 and is 1706.67 x 960 units.
+            var work = new LayoutRect(1280, 0, 1706.67, 960);
+            // Native pixels on that screen: icon near its bottom-right, taskbar 80 px tall.
+            var p = WindowGeometry.PlacementForPhysicalAnchor(
+                new LayoutRect(2400, 1360, 30, 30), 400, 230, work, 1.5);
+            // The anchor is (1600, 906.67) in layout units with a 20-unit width, so centring gives
+            // 1600 + 10 - 200 = 1410 - comfortably inside the 1280..2986.67 work area.
+            Near(p.X, 1410, 0.001, "converted with the 150 % scale, then centred on the icon");
+            Near(p.X, 2400 / 1.5 + (30 / 1.5) / 2 - 400.0 / 2, 0.001, "matches the per-monitor conversion");
+            Near(p.Y + p.H, 1360 / 1.5 - 8, 0.001, "anchored above the icon in that display's units");
+            Assert.True(p.X >= work.X && p.X + p.W <= work.Right + 0.001, "inside that display");
+            Assert.True(p.Y >= work.Y && p.Y + p.H <= work.Bottom + 0.001, "vertically inside");
+        }
+
+        /// <summary>A display to the left of the primary one has negative coordinates.</summary>
+        [Fact]
+        public void NegativeOriginWorkAreaIsRespected()
+        {
+            var work = new LayoutRect(-1920, 0, 1920, 1040);
+            var anchor = new LayoutRect(-1700, 1000, 20, 20);
+            var p = WindowGeometry.Placement(anchor, 400, 300, work);
+            Assert.True(p.X >= work.X, "not pushed onto the primary display");
+            Assert.True(p.Y >= work.Y && p.Y + p.H <= work.Bottom + 0.001, "vertically inside");
+            Near(p.Y + p.H, anchor.Y - 8, 0.001, "still anchored above the icon");
+            Near(p.X, -1700 + 10 - 200, 0.001, "still centred on the icon");
+        }
+
+        /// <summary>
+        /// A secondary display with the same negative origin but a 100 % scale: the same physical
+        /// anchor becomes a different layout position, which is exactly what the old
+        /// TransformFromDevice got wrong when the window was on the other monitor.
+        /// </summary>
+        [Fact]
+        public void LowerScaleMonitorKeepsTheSamePhysicalAnchor()
+        {
+            var work = new LayoutRect(-1920, 0, 1920, 1080);          // 100 % scale
+            var physicalIcon = new LayoutRect(-900, 1040, 24, 24);     // native pixels
+            var a = new LayoutRect(physicalIcon.X, physicalIcon.Y, physicalIcon.W, physicalIcon.H);
+            var p = WindowGeometry.Placement(a, 400, 230, work);
+            Near(p.Y + p.H, a.Y - 8, 0.001, "anchored above the same physical icon");
+            Assert.True(p.X >= work.X && p.X + p.W <= work.Right + 0.001, "inside that monitor");
+        }
+
+        [Fact]
+        public void PopoverTallerThanTheWorkAreaIsCentredAndShrunk()
+        {
+            var p = WindowGeometry.Placement(Tray, 400, 900, Work);
+            Near(p.H, Work.H - 8, 0.001, "limited to the usable height");
+            Near(p.Y, Work.Y + (Work.H - p.H) / 2, 0.001, "centred rather than jammed against the top edge");
+            Assert.True(p.Y >= Work.Y && p.Y + p.H <= Work.Bottom + 0.001, "still inside");
+        }
+
+        /// <summary>A short screen (a 1366x768 panel at 125 %): 400 units do not fit beside the anchor.</summary>
+        [Fact]
+        public void PopoverWiderThanTheRemainingSpaceIsStillFullyOnScreen()
+        {
+            var work = new LayoutRect(0, 0, 1092, 582);
+            var anchor = new LayoutRect(8, 560, 16, 16);              // tray at the far left
+            var p = WindowGeometry.Placement(anchor, 400, 230, work);
+            Assert.True(p.X >= work.X + 4 - 0.001, "not pushed off the left edge");
+            Assert.True(p.X + p.W <= work.Right - 4 + 0.001, "not pushed off the right edge");
+            Near(p.W, 400, 0.001, "the width is not silently changed");
+        }
+
+        [Fact]
+        public void PopoverFallsBelowWhenThereIsNoRoomAbove()
+        {
+            var anchor = new LayoutRect(100, Work.Y + 6, 20, 20);   // near the top edge
+            var p = WindowGeometry.Placement(anchor, 300, 100, Work);
+            Near(p.Y, anchor.Bottom + 8, 0.001, "below the anchor when nothing fits above");
+        }
+
+        [Fact]
+        public void ContainPullsAWindowBackFromARemovedDisplay()
+        {
+            var work = new LayoutRect(0, 0, 1920, 1040);
+            var stranded = new LayoutRect(3000, -200, 600, 500);   // last seen on a display that is gone
+            var c = WindowGeometry.Contain(stranded, work);
+            Assert.True(c.X >= work.X && c.X + c.W <= work.Right + 0.001, "horizontally recovered");
+            Assert.True(c.Y >= work.Y && c.Y + c.H <= work.Bottom + 0.001, "vertically recovered");
+        }
+
+        [Fact]
+        public void ContainShrinksAWindowLargerThanTheDisplay()
+        {
+            var work = new LayoutRect(0, 0, 800, 600);
+            var c = WindowGeometry.Contain(new LayoutRect(-50, -50, 1200, 900), work);
+            Fx.Near(c.W, 800, 0.001);
+            Fx.Near(c.H, 600, 0.001);
+            Fx.Near(c.X, 0, 0.001);
+            Fx.Near(c.Y, 0, 0.001);
+        }
+
+        [Fact]
+        public void CenterKeepsTheSettingsWindowOnScreen()
+        {
+            var work = new LayoutRect(0, 0, 1280.0 / 2.25, 752.0 / 2.25);
+            var (x, y) = WindowGeometry.Center(460, 334, work);
+            Assert.True(x >= work.X && x + 460 <= work.Right + 0.001, "centred horizontally inside");
+            Assert.True(y >= work.Y && y + 334 <= work.Bottom + 0.001, "centred vertically inside");
+        }
+    }
+
     public class JsonTests
     {
         [Fact]
