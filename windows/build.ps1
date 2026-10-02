@@ -42,19 +42,28 @@ if (-not $iscc) {
   }
 }
 if (-not $iscc) { throw "ISCC.exe (Inno Setup 6) not found" }
+# OutputBaseFilename in the .iss is ClearPower-Setup-<version>-x64, so this is where it lands.
+$setup = Join-Path $dist "ClearPower-Setup-$version-x64.exe"
+Remove-Item $setup -ErrorAction SilentlyContinue
 & $iscc /Q "/DAppVersion=$version" "/DStageDir=$stage" "/DOutDir=$dist" (Join-Path $win "installer\ClearPower.iss")
 if ($LASTEXITCODE -ne 0) { throw "ISCC failed" }
+if (-not (Test-Path $setup)) { throw "ISCC did not produce $setup" }
 
 Write-Host "== portable zip"
 $zip = Join-Path $dist "ClearPower-$version-x64-portable.zip"
 Remove-Item $zip -ErrorAction SilentlyContinue
 Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip
 
+# Only the artefacts this run produced. Globbing the whole dist directory would pick up packages
+# from earlier versions that happen to still be lying there (they did: 0.4.0 and 0.5.0 ended up in
+# the checksums), which is how a release ends up publishing stale binaries.
 Write-Host "== checksums"
+$assets = @($setup, $zip)
+foreach ($a in $assets) { if (-not (Test-Path $a)) { throw "missing artefact: $a" } }
 $sums = @()
-foreach ($f in Get-ChildItem $dist -File | Where-Object { $_.Name -ne "SHA256SUMS" }) {
-  $h = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
-  $sums += "$h  $($f.Name)"
+foreach ($f in $assets) {
+  $h = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+  $sums += "$h  $(Split-Path -Leaf $f)"
 }
 Set-Content -Path (Join-Path $dist "SHA256SUMS") -Value ($sums -join "`n") -Encoding ascii
 $sums | ForEach-Object { Write-Host $_ }

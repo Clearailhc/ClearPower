@@ -1,6 +1,8 @@
 # Builds all three platforms on every push / PR, and publishes one GitHub Release with the
-# Linux .deb, the macOS .dmg and the Windows installer + portable zip — either when a v* tag
-# is pushed, or from a manual run with `release` ticked (which creates the tag itself).
+# Linux .deb, the macOS .dmg and the Windows installer + portable zip.
+#
+# A release happens when a v* tag is pushed (the normal path — see docs/releasing.md), or from a
+# manual run with `release` ticked, which tags the commit it built as v<VERSION> itself.
 name: build
 
 on:
@@ -19,7 +21,56 @@ permissions:
   contents: write
 
 jobs:
+  # Cheap gate that runs before anything is built or published: a release whose version files
+  # disagree, or whose tag does not match VERSION, is worse than a failed run.
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag matches VERSION
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          file=$(tr -d '[:space:]' < VERSION)
+          tag="${GITHUB_REF_NAME#v}"
+          if [ "$file" != "$tag" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match VERSION ($file). Set VERSION to $tag and retag."
+            exit 1
+          fi
+          echo "tag $GITHUB_REF_NAME matches VERSION $file"
+      - name: Version files agree
+        run: |
+          set -euo pipefail
+          v=$(tr -d '[:space:]' < VERSION)
+          py=$(sed -n 's/^VERSION = "\([^"]*\)"/\1/p' daemon/clearpowerd/__init__.py)
+          sw=$(sed -n 's/.*let string = "\([^"]*\)".*/\1/p' macos/Sources/ClearPowerCore/Version.swift)
+          echo "VERSION=$v  daemon=$py  macos=$sw"
+          if [ "$py" != "$v" ] || [ "$sw" != "$v" ]; then
+            echo "::error::version files disagree; VERSION, daemon/clearpowerd/__init__.py and macos/Sources/ClearPowerCore/Version.swift must match"
+            exit 1
+          fi
+      - name: Release notes exist
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then tag="$GITHUB_REF_NAME"; else tag="v$(tr -d '[:space:]' < VERSION)"; fi
+          if [ ! -f "docs/RELEASE-${tag}.md" ]; then
+            echo "::error::docs/RELEASE-${tag}.md is missing. Add the release notes before tagging."
+            exit 1
+          fi
+          echo "notes: docs/RELEASE-${tag}.md"
+      - name: Changelog mentions the version
+        run: |
+          set -euo pipefail
+          v=$(tr -d '[:space:]' < VERSION)
+          if ! grep -q "^## \[$v\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [$v]' section."
+            exit 1
+          fi
+          echo "changelog: ## [$v]"
+
   linux:
+    needs: [version]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,11 +84,12 @@ jobs:
           path: dist/*.deb
 
   macos:
+    needs: [version]
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      # Swift Testing (`import Testing`) needs a Swift 6 toolchain; pick the newest Xcode on
-      # the image rather than whatever the runner defaults to.
+      # Swift Testing (`import Testing`) needs a Swift 6 toolchain; pick the newest Xcode on the
+      # image rather than whatever the runner defaults to.
       - name: Select newest Xcode
         run: |
           sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
@@ -59,6 +111,7 @@ jobs:
           path: macos/dist/*.dmg
 
   windows:
+    needs: [version]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -85,18 +138,33 @@ jobs:
   # commit it builds as v<VERSION> itself).
   release:
     if: startsWith(github.ref, 'refs/tags/v') || inputs.release
-    needs: [linux, macos, windows]
+    needs: [version, linux, macos, windows]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # Artifact names are unique, so download-artifact keeps the original file names: the release
+      # asset list is exactly what the three jobs built, with no extra directory in between.
       - uses: actions/download-artifact@v4
         with:
           path: artifacts
           merge-multiple: true
-      - name: Checksums and notes
+      - name: Only this version's packages
+        run: |
+          set -euo pipefail
+          ls -l artifacts
+          keep="$(tr -d '[:space:]' < VERSION)"
+          # A release must carry only this version. Anything else is a leftover from an earlier
+          # run or a mis-built package, and shipping it silently is what we are avoiding here.
+          bad=$(find artifacts -maxdepth 1 -type f \( -name '*.deb' -o -name '*.dmg' -o -name '*.exe' -o -name '*.zip' \) \
+                ! -name "*${keep}*" || true)
+          if [ -n "$bad" ]; then
+            echo "::error::packages for a version other than $keep were produced:"; echo "$bad"; exit 1
+          fi
+      - name: Checksums and tag
         id: meta
         run: |
-          (cd artifacts && sha256sum * > SHA256SUMS && cat SHA256SUMS)
+          set -euo pipefail
+          (cd artifacts && sha256sum *.deb *.dmg *.exe *.zip > SHA256SUMS && cat SHA256SUMS)
           if [ "$GITHUB_REF_TYPE" = tag ]; then
             TAG="$GITHUB_REF_NAME"
           else
@@ -105,10 +173,16 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           NOTES="docs/RELEASE-${TAG}.md"
           if [ -f "$NOTES" ]; then echo "notes=$NOTES" >> "$GITHUB_OUTPUT"; else echo "notes=" >> "$GITHUB_OUTPUT"; fi
-      - uses: softprops/action-gh-release@v2
+      - name: Publish
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.tag }}
           name: ClearPower ${{ steps.meta.outputs.tag }}
           body_path: ${{ steps.meta.outputs.notes }}
           generate_release_notes: ${{ steps.meta.outputs.notes == '' }}
-          files: artifacts/*
+          files: |
+            artifacts/*.deb
+            artifacts/*.dmg
+            artifacts/*.exe
+            artifacts/*.zip
+            artifacts/SHA256SUMS
