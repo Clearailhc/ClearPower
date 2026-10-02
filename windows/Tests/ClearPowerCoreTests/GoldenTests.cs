@@ -268,23 +268,64 @@ namespace ClearPower.Core.Tests
 
     public class ProcessBudgetTests
     {
+        /// <summary>Busy core count, for the samples that are not idle.</summary>
+        private const double Busy = 1.05;
+
         [Fact]
         public void BudgetDistribution()
         {
             var pb = new ProcessBudget(3, 600);
-            pb.Sample(0, 4, () => new (string, double)[0]);
-            var top = pb.Sample(10, 10, () => new[] { ("a", 50.0), ("b", 25.0), ("a", 25.0), ("c", 0.0), ("d", 5.0) });
-            // floor is min over window = 4, budget 6 W; a=75 of 105
+            pb.Sample(0, 4, 0.0, () => new (string, double)[0]);   // establishes the floor
+            var top = pb.Sample(10, 10, Busy, () => new[] { ("a", 50.0), ("b", 25.0), ("a", 25.0), ("c", 0.0), ("d", 5.0) });
+            // floor is the 20th percentile of {4, 10} = 4, budget 6 W; a=75 of 105
             Assert.Equal(3, top.Count);
             Assert.Equal("a", top[0].name); Fx.Near(top[0].w, 6 * 75.0 / 105.0, 1e-9);
             Assert.Equal("b", top[1].name); Assert.Equal("d", top[2].name);
             // Called again within interval -> cached
-            Assert.Equal("a", pb.Sample(11, 20, () => new[] { ("z", 1.0) }).First().name);
+            Assert.Equal("a", pb.Sample(11, 20, Busy, () => new[] { ("z", 1.0) }).First().name);
+        }
+
+        /// <summary>
+        /// Regression: the floor used to be the raw minimum of the window, so one low reading pinned
+        /// it and - just as bad - a machine that never goes properly idle put the floor at the lowest
+        /// sample of ten minutes, well below what "idle plus the usual background" actually costs.
+        /// The floor is now a low percentile, so an isolated load spike cannot drag it up.
+        /// </summary>
+        [Fact]
+        public void LoadSpikeDoesNotDragTheFloorUp()
+        {
+            var pb = new ProcessBudget(1, 600);
+            var usage = new[] { ("app", 100.0) };
+            // Timed 2 s apart so every call gets past the 1 s sampling interval.
+            double[] samples = { 4.0, 4.2, 20.0, 4.1 };      // one burst of load among idle readings
+            for (int i = 0; i < samples.Length; i++) pb.Sample(i * 2, samples[i], 1.0, () => usage);
+            // Five readings, sorted {4.0, 4.1, 4.1, 4.2, 20}; 20 % of 5 truncates to index 1 -> floor
+            // 4.1, nowhere near the 20 W spike, so the budget is 6 - 4.1 = 1.9 W.
+            var top = pb.Sample(20, 6, 1.0, () => usage);
+            Assert.Single(top);
+            Assert.True(Math.Abs(top[0].w - 1.9) < 1e-9, $"budget = 6 - floor(4.1): got {top[0].w}");
+        }
+
+        /// <summary>
+        /// The floor tracks the quiet end of the readings rather than their average, so a handful of
+        /// idle samples is enough to establish a sensible baseline.
+        /// </summary>
+        [Fact]
+        public void FloorTracksTheQuietEndNotTheAverage()
+        {
+            var pb = new ProcessBudget(1, 600);
+            var usage = new[] { ("app", 100.0) };
+            double[] idle = { 3.0, 3.2, 3.1, 3.3, 3.15 };
+            for (int i = 0; i < idle.Length; i++) pb.Sample(i * 2, idle[i], 0.2, () => usage);
+            // Sorted: {3.0, 3.1, 3.15, 3.2, 3.3}; 20 % of 5 = index 1 -> floor 3.1 (not the 3.15 mean).
+            var top = pb.Sample(20, 8, 3.0, () => usage);
+            Assert.Single(top);
+            Assert.True(Math.Abs(top[0].w - 4.9) < 1e-9, $"budget = 8 - floor(3.1): got {top[0].w}");
         }
 
         /// <summary>
         /// Regression: an unknown package power used to be recorded as a 0 W floor entry. Because
-        /// the floor is a sliding minimum over ten minutes, that single entry made every later
+        /// the floor is a rolling statistic over ten minutes, that single entry made every later
         /// budget the full package power, and it could not age out for the whole window.
         /// </summary>
         [Fact]
@@ -295,17 +336,17 @@ namespace ClearPower.Core.Tests
 
             // -1 = RAPL/Energy Meter not ready yet (or the first sample after resume). It must not
             // be recorded: the previous (empty) result comes back and the floor stays untouched.
-            Assert.Empty(pb.Sample(0, -1, () => usage));
+            Assert.Empty(pb.Sample(0, -1, 0.0, () => usage));
 
             // A real reading establishes the floor: budget = 7 - 7 = 0, so the app is listed at 0 W.
-            var first = pb.Sample(1, 7, () => usage);
+            var first = pb.Sample(1, 7, 0.0, () => usage);
             Assert.Single(first);
             Fx.Near(first[0].w, 0.0, 1e-9, "the first real reading is its own floor");
 
             // A later rise is attributed as the *difference*: 8 - 7 = 1 W, not 8 W. Without the fix
             // the poisoned 0 W floor would have made this the whole 8 W. (t=4 is past the 3 s
             // interval the t=1 sample opened; an earlier call would just return the cached result.)
-            var top = pb.Sample(4, 8, () => usage);
+            var top = pb.Sample(4, 8, 0.0, () => usage);
             Assert.Single(top);
             Fx.Near(top[0].w, 1.0, 1e-9, "budget must be package_w - floor");
         }
@@ -320,18 +361,18 @@ namespace ClearPower.Core.Tests
             var pb = new ProcessBudget(3, 600);
             var usage = new[] { ("app", 100.0) };
             // t=0: floor 1, budget 0 -> the app is listed at 0 W and the interval opens until t=3.
-            var baseline = pb.Sample(0, 1, () => usage);
+            var baseline = pb.Sample(0, 1, 0.0, () => usage);
             Assert.Single(baseline);
             Fx.Near(baseline[0].w, 0.0, 1e-9, "the first reading is its own floor");
 
             // t=1: unknown power. The cached row comes back, and the interval must stay as it was —
             // the old code consumed it here, pushing the next real attempt out to t=4 instead of t=3.
-            var skipped = pb.Sample(1, -1, () => usage);
+            var skipped = pb.Sample(1, -1, 0.0, () => usage);
             Assert.Single(skipped);
             Fx.Near(skipped[0].w, 0.0, 1e-9, "an unusable sample must not fabricate a new result");
 
             // t=3: the interval the t=0 sample opened has now elapsed, so a real reading is taken.
-            var top = pb.Sample(3, 2, () => usage);
+            var top = pb.Sample(3, 2, 0.0, () => usage);
             Assert.Single(top);
             Fx.Near(top[0].w, 1.0, 1e-9, "the skipped sample must not have extended the interval");
         }

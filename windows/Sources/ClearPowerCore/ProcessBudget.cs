@@ -30,31 +30,50 @@ namespace ClearPower.Core
             _floorWindowS = floorWindowS;
         }
 
+        /// <summary>
+        /// The idle floor is a low percentile of the package power over the window, not its minimum.
+        ///
+        /// A minimum is pinned by whichever single low reading happened to occur (a screen dimming,
+        /// one quiet sample), and it is equally unable to rise again: on a machine that never goes
+        /// properly idle the floor is the lowest sample of ten minutes, which can be well under what
+        /// "idle plus the usual background" actually costs. A low percentile tracks the quiet end of
+        /// the distribution instead of one outlier, so normal background load (a browser, a virus
+        /// scanner, the hundreds of processes a Windows desktop runs) does not distort it. With 20 %
+        /// of the window's samples below it, twenty seconds of sustained full load cannot move it.
+        /// </summary>
+        private const int FloorPercentile = 20;
+
+        /// <summary>
+        /// Record a package reading and return the floor, or NaN when nothing has been recorded yet.
+        /// </summary>
         private double IdleFloor(double now, double packageW)
         {
             _floor.AddLast((now, packageW));
             while (_floor.Count > 0 && now - _floor.First!.Value.t > _floorWindowS) _floor.RemoveFirst();
-            return _floor.Min(p => p.w);
+            if (_floor.Count == 0) return double.NaN;
+            var sorted = _floor.Select(p => p.w).OrderBy(w => w).ToArray();
+            var idx = Math.Min(sorted.Length - 1, sorted.Length * FloorPercentile / 100);
+            return sorted[idx];
         }
 
         /// <summary>
         /// `usage` yields (process name, cpu percent) pairs; evaluated at most every IntervalS.
+        /// `busyCores` is how many cores the machine has been busy for over the window (0.4 means
+        /// 40 % of one core); it is accepted for the caller's convenience and diagnostics.
         ///
-        /// An unknown package power (-1: Energy Meter/RAPL not ready yet, a counter read failure,
-        /// or the first sample after resume from sleep) must never reach the floor. The floor is a
-        /// sliding *minimum* over ten minutes, so one bogus entry sticks for the whole window and
-        /// every later budget is computed against it: recording -1 as 0 W makes the budget the full
-        /// package power, and recording a re-scaled near-zero reading as the floor makes it
-        /// (near) zero, which hides every application. An unusable sample is therefore skipped
-        /// outright: the previous result is returned and the interval is not consumed, so the very
-        /// next tick samples again instead of waiting out a full interval for nothing.
+        /// An unknown package power (-1: Energy Meter/RAPL not ready yet, a counter read failure, or
+        /// the first sample after resume from sleep) must never reach the floor: recording -1 as 0 W
+        /// would drag the floor to nothing and turn every later budget into the full package power.
+        /// Such a sample is skipped outright - the previous result is returned and the interval is
+        /// not consumed, so the next tick tries again.
         /// </summary>
-        public List<(string name, double w, double cpuPct)> Sample(double now, double packageW, Func<IEnumerable<(string name, double cpuPct)>> usage, int n = 3)
+        public List<(string name, double w, double cpuPct)> Sample(double now, double packageW, double busyCores, Func<IEnumerable<(string name, double cpuPct)>> usage, int n = 3)
         {
             if (now < _next) return Top;
             if (packageW < 0) return Top;          // unknown power: leave both the floor and the interval alone
-            _next = now + IntervalS;
             var floor = IdleFloor(now, packageW);
+            if (double.IsNaN(floor)) return Top;   // nothing recorded yet: same, retry next tick
+            _next = now + IntervalS;
             var budget = Math.Max(packageW - floor, 0.0);
             var agg = new Dictionary<string, double>();
             var order = new List<string>();

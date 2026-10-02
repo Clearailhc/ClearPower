@@ -21,6 +21,7 @@ namespace ClearPower.App
         {
             var a = args.ToList();
             if (a.Contains("--once")) return WithConsole(() => Once(a.Contains("-v")));
+            if (a.Contains("--procs")) return WithConsole(() => Procs(a.Contains("-v")));
             if (a.Contains("--charge")) return WithConsole(() => ChargeInfo(a));
             if (a.Contains("--help") || a.Contains("-h")) return WithConsole(() => { Console.WriteLine(Usage); return 0; });
             if (a.Contains("--quit"))
@@ -37,7 +38,7 @@ namespace ClearPower.App
             return app.Run();
         }
 
-        private const string Usage = "ClearPower.exe [--once [-v] | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
+        private const string Usage = "ClearPower.exe [--once [-v] | --procs [-v] | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
 
         /// <summary>A WinExe has no console; borrow the parent's so the output lands in the terminal.</summary>
         private static int WithConsole(Func<int> body)
@@ -62,6 +63,48 @@ namespace ClearPower.App
             var parts = new[] { "cpu_w", "gpu_w", "soc_w", "mem_w", "other_w" }.Select(k => snap.D(k)).Where(v => v >= 0).ToList();
             if (snap.D("display_w") >= 0) parts.Add(snap.D("display_w"));
             Console.WriteLine(string.Format(CultureInfo.InvariantCulture, "# sum(parts)={0:F3}  sys_w={1:F3}  source={2}", parts.Sum(), snap.D("sys_w"), snap.S("sys_source")));
+            return 0;
+        }
+
+        /// <summary>
+        /// --procs: what the apps box is working from, for support. Per-application power is a
+        /// subtraction and a share, so when the box looks wrong the interesting numbers are the
+        /// package power the attribution was given (a small -1 means not usable yet), the floor it
+        /// is measured against, and the CPU share of each row.
+        /// </summary>
+        private static int Procs(bool verbose)
+        {
+            using var engine = new Engine(chargeHardware: ChargeBackends.Detect(verbose ? Console.Error.WriteLine : null));
+            engine.Log = s => { if (verbose) Console.Error.WriteLine(s); };
+            // RAPL needs a baseline, and the per-process source returns nothing until it has two
+            // CPU-time readings to subtract from each other.
+            for (int i = 0; i < 5; i++) { engine.Touch(); engine.Tick(); Thread.Sleep(1200); }
+            engine.Touch();
+            var snap = engine.Tick();
+            Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                "package_w={0:F3}  cpu_w={1:F3}  sys_w={2:F3}  source={3}  rapl_available={4}",
+                snap.D("package_w"), snap.D("cpu_w"), snap.D("sys_w"), snap.S("sys_source"), snap.B("rapl_available")));
+            if (snap.D("cpu_w") < 0)
+            {
+                Console.WriteLine("# the apps box shows \"application power data unavailable\": there is no");
+                Console.WriteLine("# per-block energy counter to attribute, so no app list can be produced.");
+                return 0;
+            }
+            Console.WriteLine("# cpu_w is measured, so the apps box lists rows from:");
+            var top = engine.GetTopProcesses(3);
+            if (top.Count == 0)
+            {
+                Console.WriteLine("  (no row yet - run it again in a few seconds, or the machine is fully");
+                Console.WriteLine("   idle so there is no dynamic CPU power to hand out)");
+                return 0;
+            }
+            Console.WriteLine("  name                              watts     cpu%   shown");
+            foreach (var (name, w, cpu) in top)
+                Console.WriteLine(string.Format(CultureInfo.InvariantCulture,
+                    "  {0,-30} {1,8:F3} {2,8:F1}   {3}", name, w, cpu, w >= 0.5));
+            Console.WriteLine("# rows under 0.5 W are hidden, exactly as on Linux and macOS. For the first");
+            Console.WriteLine("# seconds after startup, or after resume from sleep, every row is near 0 W: the");
+            Console.WriteLine("# budget is the rise above the idle floor and nothing has risen yet.");
             return 0;
         }
 

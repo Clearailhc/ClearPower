@@ -42,10 +42,13 @@ Force-discharge has no public Windows interface, so the Discharge button is hidd
 Notes on the estimates:
 
 - **Apps.** Per-application power is the dynamic CPU power (package power − its ten-minute
-  rolling minimum) split by CPU share, so the apps take the *rise* above idle rather than a slice
-  of the whole machine; a row below 0.5 W is hidden, exactly as on Linux and macOS. It needs the
-  Energy Meter: without RAPL the box says "application power data unavailable" instead of
-  claiming nothing is running.
+  rolling *20th percentile*) split by CPU share, so the apps take the *rise* above idle rather
+  than a slice of the whole machine; a row below 0.5 W is hidden, exactly as on Linux and macOS.
+  The percentile rather than the minimum matters on Windows: a desktop always runs hundreds of
+  processes and the CPU never reaches a true zero, so a minimum would sit well below what "idle
+  plus the usual background" actually costs. While the package power is unknown the box says
+  "application power data unavailable" instead of claiming nothing is running.
+  `ClearPower.exe --procs` prints what the box is working from.
 - **Screen content.** With `content-aware` on, the popover samples the screen every 5 s to scale
   the panel estimate by what is on it. That only answers on a single-monitor system, because the
   calibration measures one panel; with a second screen attached the reading is reported as

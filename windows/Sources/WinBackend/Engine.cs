@@ -5,6 +5,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using ClearPower.Core;
 
@@ -117,7 +118,13 @@ namespace ClearPower.Win
                 snap.MergeFrom(DisplayCal.SnapshotKeys);
                 History.Add(snap);
                 if (hot)
-                    TopProcesses = _procs.Sample(now, Sampler.PackageForBudget, () => _procSource.Usage(now));
+                {
+                    // One enumeration per interval serves both the attribution and its idle-floor
+                    // gate: the sum of the per-core percentages is the busy core count.
+                    var usage = _procSource.Usage(now);
+                    var busyCores = usage.Sum(u => u.cpuPct) / 100.0;
+                    TopProcesses = _procs.Sample(now, Sampler.PackageForBudget, busyCores, () => usage);
+                }
                 Snapshot = snap;
                 if (ended) ChargeStateChanged?.Invoke();
                 Sample?.Invoke(snap);
