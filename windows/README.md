@@ -35,9 +35,15 @@ service, no driver, no administrator prompt; .NET Framework 4.8 is part of Windo
 | Power mode | `PowerGetEffectiveOverlayScheme` / `PowerSetActiveOverlayScheme` (the Settings › Power mode slider) |
 | Temperatures / fans | Not available without a kernel driver; hidden |
 
-Charge control needs the vendor interface: ThinkPads with the Lenovo Power Manager driver
-today. Other vendors show the diagram without the charge buttons; contributions welcome.
-Force-discharge has no public Windows interface, so the Discharge button is hidden.
+Charge control needs a vendor interface. Windows has no universal API for a charge limit: the
+standard mechanism is an ACPI `_DSM` that the kernel evaluates, with no user-mode route to it, so
+every tool speaks a vendor interface instead. ClearPower keeps one backend per vendor and tries
+them in order; **Lenovo is the one implemented and verified on real hardware** (Power Manager's
+local RPC, reachable from a normal user session). Dell, HP, ASUS, MSI and Acer backends detect
+their own interface and report what they find, but their charge setting is not mapped yet, so the
+charge buttons stay hidden rather than writing a guess. `ClearPower.exe --charge-probe` prints
+exactly what a machine exposes; [docs/charge-control.md](../docs/charge-control.md) explains how to
+add one. Force-discharge has no public Windows interface, so the Discharge button stays hidden.
 
 Notes on the estimates:
 

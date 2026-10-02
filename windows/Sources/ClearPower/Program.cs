@@ -22,6 +22,7 @@ namespace ClearPower.App
             var a = args.ToList();
             if (a.Contains("--once")) return WithConsole(() => Once(a.Contains("-v")));
             if (a.Contains("--procs")) return WithConsole(() => Procs(a.Contains("-v")));
+            if (a.Contains("--charge-probe")) return WithConsole(ChargeProbe);
             if (a.Contains("--charge")) return WithConsole(() => ChargeInfo(a));
             if (a.Contains("--help") || a.Contains("-h")) return WithConsole(() => { Console.WriteLine(Usage); return 0; });
             if (a.Contains("--quit"))
@@ -38,7 +39,7 @@ namespace ClearPower.App
             return app.Run();
         }
 
-        private const string Usage = "ClearPower.exe [--once [-v] | --procs [-v] | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
+        private const string Usage = "ClearPower.exe [--once [-v] | --procs [-v] | --charge-probe | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
 
         /// <summary>A WinExe has no console; borrow the parent's so the output lands in the terminal.</summary>
         private static int WithConsole(Func<int> body)
@@ -109,6 +110,58 @@ namespace ClearPower.App
         }
 
         /// <summary>--charge [limit N | topup | cancel]: inspect or drive the charge backend from a terminal.</summary>
+        /// <summary>
+        /// --charge-probe: what charge-control interfaces this machine exposes.
+        ///
+        /// Windows has no universal API for a charge limit, so support is per vendor and every
+        /// vendor needs its own interface. This prints each backend's probe result, the WMI
+        /// namespaces that exist, and the battery-related classes in root\wmi, which is exactly what
+        /// is needed to add a backend for a machine that is not covered yet.
+        /// </summary>
+        private static int ChargeProbe()
+        {
+            Console.WriteLine("== charge backends, in the order they are tried ==");
+            foreach (var r in ChargeBackends.Probe(s => Console.WriteLine($"   probe: {s}")))
+            {
+                Console.WriteLine($"  {r.State,-12} {r.Vendor,-8} {r.Name}");
+                if (r.Detail.Length > 0) Console.WriteLine($"               {r.Detail}");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("== which one would be used ==");
+            var hw = ChargeBackends.Detect(s => Console.WriteLine("  " + s));
+            Console.WriteLine($"  -> {hw.GetType().Name}: thresholds {hw.ThresholdsSupported}, behaviours [{string.Join(",", hw.Behaviours)}]");
+            if (hw.LoadLimit() is int saved) Console.WriteLine($"  saved limit: {saved}%");
+            if (hw is IChargeHardwareInfo info)
+                foreach (var kv in info.ExtraState()) Console.WriteLine($"  {kv.Key} = {kv.Value}");
+
+            Console.WriteLine();
+            Console.WriteLine("== battery-related classes in root\\wmi ==");
+            var battery = WmiProbe.ListClasses(@"root\wmi", "Battery");
+            foreach (var c in battery) Console.WriteLine("  " + c);
+            Console.WriteLine($"  ({battery.Count} classes; the standard ones are read-only and carry no charge limit)");
+
+            Console.WriteLine();
+            Console.WriteLine("== vendor charge namespaces present ==");
+            var candidates = new[]
+            {
+                @"root\dcim\sysman", @"root\dcim\sysman\biosattributes",
+                @"root\HP\InstrumentedBIOS", @"root\HP\BIOSSettingInterface",
+                @"root\wmi",
+            };
+            foreach (var ns in candidates)
+                Console.WriteLine($"  {(WmiProbe.NamespaceExists(ns) ? "present " : "absent  ")} {ns}");
+
+            Console.WriteLine();
+            Console.WriteLine("== root namespaces (to spot an unrecognised vendor provider) ==");
+            var namespaces = WmiProbe.ListNamespaces();
+            foreach (var ns in namespaces) Console.WriteLine("  " + ns);
+
+            Console.WriteLine();
+            Console.WriteLine("Report this output when asking for a new vendor: docs/charge-control.md says what it needs.");
+            return 0;
+        }
+
         private static int ChargeInfo(List<string> a)
         {
             var hw = ChargeBackends.Detect(Console.WriteLine);
@@ -146,3 +199,4 @@ namespace ClearPower.App
         public static extern IntPtr GetStdHandle(int nStdHandle);
     }
 }
+

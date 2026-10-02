@@ -596,6 +596,49 @@ namespace ClearPower.Core.Tests
         }
     }
 
+    /// <summary>
+    /// The charge backend registry. Every backend is probed on every machine, so the contract that
+    /// matters is that a probe is safe off its own vendor and always says why it declined - that is
+    /// what makes the diagnostics output actionable when a machine is not covered.
+    /// </summary>
+    public class ChargeBackendTests
+    {
+        [Fact]
+        public void EveryBackendReportsWhyItDeclined()
+        {
+            var reports = ChargeBackends.Probe();
+            Assert.NotEmpty(reports);
+            foreach (var r in reports)
+            {
+                Assert.False(string.IsNullOrWhiteSpace(r.Name), "backend has no name");
+                Assert.False(string.IsNullOrWhiteSpace(r.Vendor), "backend has no vendor");
+                Assert.False(string.IsNullOrWhiteSpace(r.Detail),
+                    $"{r.Name} gave no reason; a probe must explain its outcome");
+            }
+        }
+
+        [Fact]
+        public void AtMostOneBackendClaimsTheMachine()
+        {
+            var reports = ChargeBackends.Probe();
+            var ready = reports.Where(r => r.State == BackendState.Ready).ToList();
+            Assert.True(ready.Count <= 1, $"{ready.Count} backends all claim this machine: " +
+                string.Join(", ", ready.Select(r => r.Name)));
+        }
+
+        /// <summary>
+        /// What Detect() returns has to agree with the probe, or the diagnostics would describe a
+        /// different machine than the app runs on.
+        /// </summary>
+        [Fact]
+        public void DetectAgreesWithTheProbe()
+        {
+            var ready = ChargeBackends.Probe().Any(r => r.State == BackendState.Ready);
+            var hw = ChargeBackends.Detect(null);
+            Assert.Equal(ready, hw.ThresholdsSupported);
+        }
+    }
+
     public class JsonTests
     {
         [Fact]
