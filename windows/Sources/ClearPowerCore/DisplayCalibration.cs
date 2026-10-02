@@ -249,6 +249,27 @@ namespace ClearPower.Core
             return n % 2 == 1 ? s[n / 2] : (s[n / 2 - 1] + s[n / 2]) / 2;
         }
 
+        /// <summary>
+        /// How many trailing levels share the last level's value. A sweep that resolved properly
+        /// ends with a distinct reading per level, so this is 1; a sweep measured while the machine
+        /// was busy flattens at the top because the running maximum absorbs the noise, and this
+        /// counts the collapsed levels.
+        /// </summary>
+        public static int TrailingFlat(List<(int raw, double w)> table)
+        {
+            if (table.Count == 0) return 0;
+            var last = table[table.Count - 1].w;
+            var n = 0;
+            for (int i = table.Count - 1; i >= 0; i--)
+            {
+                // Tolerance: these are measured watts, and a rounded value is not bit-identical to
+                // the same literal (1.9 vs the double nearest to 1.9).
+                if (Math.Abs(table[i].w - last) >= 1e-6) break;
+                n++;
+            }
+            return n;
+        }
+
         private void Finish(string? failed = null)
         {
             var r = _run;
@@ -287,6 +308,24 @@ namespace ClearPower.Core
                 State = "done"; Progress = 1; Message = "";
                 Save();
                 Log($"display calibration done: {string.Join(", ", t.Select(p => $"({p.Item1}, {p.Item2})"))} (rest0 {Rest0})");
+
+                // Say so when the sweep did not produce a usable curve. This one did on the machine
+                // it was developed on - (50,1.302) (75,1.302) (100,1.302) - because the machine was
+                // busy while the whole-machine total was being measured, and the running maximum
+                // then flattens everything above the last clean level. Without this the user sees a
+                // "calibrated" display whose brightness does nothing, and has no way to tell that a
+                // re-run might fix it.
+                var flat = TrailingFlat(t);
+                if (flat >= 3 && t[t.Count - 1].Item2 > 0)
+                {
+                    Message = I18n.T("winCalibFlat");
+                    Log($"display calibration looks unreliable: the top {flat} of {t.Count} levels carry the same value");
+                }
+                else if (measured >= 0 && measured < 0.8)
+                {
+                    Message = I18n.T("winCalibDim");
+                    Log($"display calibration looks unreliable: the sweep screen measured {measured:F2}, not ~1.0");
+                }
             }
             _run = null;
         }

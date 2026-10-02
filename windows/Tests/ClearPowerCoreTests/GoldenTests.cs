@@ -736,15 +736,104 @@ namespace ClearPower.Core.Tests
         [Fact]
         public void RoundTrip()
         {
-            var snap = new Dictionary<string, object?> { ["sys_w"] = 12.5, ["bat_pct"] = 80, ["on_ac"] = true, ["name"] = "灞忓箷 \"x\"", ["nan"] = double.NaN, ["list"] = new List<object?> { 1.0, "a" } };
+            var snap = new Dictionary<string, object?> { ["sys_w"] = 12.5, ["bat_pct"] = 80, ["on_ac"] = true, ["name"] = "屏幕 \"x\"", ["nan"] = double.NaN, ["list"] = new List<object?> { 1.0, "a" } };
             var text = Snapshot.Json(snap, pretty: false);
             var back = Json.ParseObject(text);
             Assert.Equal(12.5, back.D("sys_w"));
             Assert.Equal(80, back.I("bat_pct"));
             Assert.True(back.B("on_ac"));
-            Assert.Equal("灞忓箷 \"x\"", back.S("name"));
+            Assert.Equal("屏幕 \"x\"", back.S("name"));
             Assert.Equal(-1.0, back.D("nan"));
             Assert.Equal(2, Fx.Arr(back["list"]).Count);
+        }
+    }
+
+    /// <summary>
+    /// `--charge --dry-run` must show the exact calls a command would make and make none of them.
+    /// That is the only safe way to ask someone on an unmapped vendor what the app intends to do.
+    /// </summary>
+    public class DryRunChargeTests
+    {
+        private static DryRunChargeHardware Wrapped(out FakeChargeLimit inner)
+        {
+            inner = new FakeChargeLimit();
+            return new DryRunChargeHardware(new WmiChargeHardware(inner, store: new FakeLimitStore()), _ => { });
+        }
+
+        [Fact]
+        public void NothingReachesTheHardware()
+        {
+            var dry = Wrapped(out var inner);
+            var sm = new ChargeStateMachine(dry);
+            sm.SetLimit(80);
+            Assert.Empty(inner.Writes);
+        }
+
+        [Fact]
+        public void TheCallsAreRecordedInOrder()
+        {
+            var dry = Wrapped(out _);
+            new ChargeStateMachine(dry).SetLimit(80);
+            Assert.Equal(2, dry.Entries.Count);
+            Assert.Contains("thresholds", dry.Entries[0].ToString());
+            Assert.Contains("end=80", dry.Entries[0].ToString());
+            Assert.Contains("start=75", dry.Entries[0].ToString());
+            Assert.Contains("save limit", dry.Entries[1].ToString());
+        }
+
+        /// <summary>The capability has to pass through, or the dry run would misreport the machine.</summary>
+        [Fact]
+        public void CapabilityStillReflectsTheRealBackend()
+        {
+            var dry = Wrapped(out _);
+            Assert.True(dry.ThresholdsSupported);
+            Assert.DoesNotContain("force-discharge", dry.Behaviours);
+        }
+
+        [Fact]
+        public void RepairIsRecordedAsAWrite()
+        {
+            var inner = new FakeChargeLimit();
+            var store = new FakeLimitStore();
+            store.Save(85);
+            var dry = new DryRunChargeHardware(new WmiChargeHardware(inner, store: store), _ => { });
+            dry.Reassert();
+            Assert.Empty(inner.Writes);
+            Assert.Single(dry.Entries);
+            Assert.Contains("re-apply", dry.Entries[0].ToString());
+        }
+    }
+
+    /// <summary>
+    /// The calibration quality check. A sweep measured on a busy machine flattens at the top, and
+    /// the user needs to be told rather than left with a "calibrated" display whose brightness does
+    /// nothing.
+    /// </summary>
+    public class CalibrationQualityTests
+    {
+        [Fact]
+        public void AFlatTableIsDetected()
+        {
+            // The table produced on the machine this was developed on: the top three levels are identical.
+            var t = new List<(int, double)> { (0, 0), (1, 0), (10, 0), (25, 0.255), (50, 1.302), (75, 1.302), (100, 1.302) };
+            Assert.Equal(3, DisplayCalibration.TrailingFlat(t));
+            Assert.True(DisplayCalibration.TrailingFlat(t) >= 3, "this table must be reported as unreliable");
+        }
+
+        [Fact]
+        public void AProperlyResolvedTableIsAccepted()
+        {
+            var t = new List<(int, double)> { (0, 0), (25, 0.6), (50, 1.2), (75, 1.9), (100, 2.6) };
+            Assert.Equal(1, DisplayCalibration.TrailingFlat(t));
+            Assert.False(DisplayCalibration.TrailingFlat(t) >= 3, "a monotone sweep must be accepted");
+        }
+
+        [Fact]
+        public void AnAllZeroTableIsNotFlaggedAsFlat()
+        {
+            // A panel that never lit up is a different problem (no emission), reported elsewhere.
+            var t = new List<(int, double)> { (0, 0), (50, 0), (100, 0) };
+            Assert.Equal(3, DisplayCalibration.TrailingFlat(t));
         }
     }
 }

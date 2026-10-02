@@ -39,7 +39,7 @@ namespace ClearPower.App
             return app.Run();
         }
 
-        private const string Usage = "ClearPower.exe [--once [-v] | --procs [-v] | --charge-probe | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
+        private const string Usage = "ClearPower.exe [--once [-v] | --procs [-v] | --charge-probe | --charge [limit N|topup|cancel|repair] [--dry-run] | --shot file.png [--shot-hover node] | --quit | --help]";
 
         /// <summary>A WinExe has no console; borrow the parent's so the output lands in the terminal.</summary>
         private static int WithConsole(Func<int> body)
@@ -138,7 +138,8 @@ namespace ClearPower.App
         private static int ChargeProbe()
         {
             Console.WriteLine("== charge backends, in the order they are tried ==");
-            foreach (var r in ChargeBackends.Probe(s => Console.WriteLine($"   probe: {s}")))
+            var reports = ChargeBackends.Probe(s => Console.WriteLine($"   probe: {s}"));
+            foreach (var r in reports)
             {
                 Console.WriteLine($"  {r.State,-12} {r.Vendor,-8} {r.Name}");
                 if (r.Detail.Length > 0) Console.WriteLine($"               {r.Detail}");
@@ -177,9 +178,57 @@ namespace ClearPower.App
             Console.WriteLine("== root namespaces (to spot an unrecognised vendor provider) ==");
             foreach (var ns in WmiProbe.ListNamespaces()) Console.WriteLine("  " + ns);
 
+            // A short, paste-ready block so a user on an uncovered machine does not have to decide
+            // which part of the dump above matters.
             Console.WriteLine();
-            Console.WriteLine("Report this output when asking for a vendor: docs/charge-control.md says what it needs.");
+            Console.WriteLine("== paste this when asking for a vendor ==");
+            Console.WriteLine("```");
+            Console.WriteLine($"ClearPower {typeof(App).Assembly.GetName().Version?.ToString(3)} on {Environment.OSVersion.Version}");
+            Console.WriteLine($"vendor: {MachineVendor()}  model: {MachineModel()}  cpu: {CpuName()}");
+            Console.WriteLine($"x64: {Environment.Is64BitProcess}  logical cores: {Environment.ProcessorCount}");
+            foreach (var r in reports) Console.WriteLine($"backend {r.Vendor}: {r.State} - {r.Detail}");
+            Console.WriteLine($"chosen: {hw.GetType().Name} (thresholds {hw.ThresholdsSupported})");
+            Console.WriteLine("```");
+            Console.WriteLine("docs/charge-control.md says what it needs.");
             return 0;
+        }
+
+        /// <summary>Manufacturer and model from the firmware tables, for the probe report.</summary>
+        private static string MachineVendor() => ReadFirmware("Manufacturer");
+        private static string MachineModel() => ReadFirmware("ProductName", "SystemFamily");
+        private static string CpuName() =>
+            Environment.GetEnvironmentVariable("PROCESSOR_IDENTIFIER") ?? "unknown";
+
+        /// <summary>
+        /// One property per query. Asking for several at once fails as a whole when the class does
+        /// not carry them all (SystemFamily is absent on Windows 10), which is how the vendor and
+        /// model came out as "unknown" on the machine this was written on.
+        /// </summary>
+        private static string ReadFirmware(string preferred, string? fallback = null)
+        {
+            foreach (var cls in new[] { "Win32_ComputerSystemProduct", "Win32_ComputerSystem", "Win32_BaseBoard" })
+            {
+                var v = QueryOne(cls, preferred) ?? (fallback == null ? null : QueryOne(cls, fallback));
+                if (string.IsNullOrEmpty(v) || v == "System Product Name" || v == "To be filled by O.E.M.") continue;
+                if (preferred == "Manufacturer") return v!;
+                var m = QueryOne(cls, "Manufacturer");
+                return string.IsNullOrEmpty(m) ? v! : $"{m} / {v}";
+            }
+            return "unknown";
+        }
+
+        private static string? QueryOne(string className, string property)
+        {
+            try
+            {
+                using var searcher = new System.Management.ManagementObjectSearcher(
+                    new System.Management.ManagementScope(@"root\cimv2"),
+                    new System.Management.ObjectQuery($"SELECT {property} FROM {className}"));
+                foreach (System.Management.ManagementObject o in searcher.Get())
+                    return o[property]?.ToString()?.Trim();
+            }
+            catch (Exception) { }
+            return null;
         }
 
         private static readonly HashSet<string> Described = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -194,30 +243,78 @@ namespace ClearPower.App
             if (members.Count > 24) Console.WriteLine($"        ... {members.Count - 24} more");
         }
 
+        /// <summary>
+        /// --charge [limit N | topup | cancel | repair] [--dry-run]: inspect or drive the charge
+        /// backend from a terminal.
+        ///
+        /// With no command it only reads. That matters: this used to call Reassert() at the end
+        /// unconditionally, so a read-only invocation still wrote the saved limit to the embedded
+        /// controller. Writing now happens only for an explicit command, and `--dry-run` swaps the
+        /// hardware for one that records the calls instead of making them.
+        /// </summary>
         private static int ChargeInfo(List<string> a)
         {
-            var hw = ChargeBackends.Detect(Console.WriteLine);
-            Console.WriteLine($"backend: {hw.GetType().Name}, thresholds supported: {hw.ThresholdsSupported}, behaviours: {string.Join(",", hw.Behaviours)}");
+            var dryRun = a.Contains("--dry-run");
+            var real = ChargeBackends.Detect(Console.WriteLine);
+            IChargeHardware hw = real;
+            DryRunChargeHardware? recorded = null;
+            if (dryRun)
+            {
+                recorded = new DryRunChargeHardware(real, Console.WriteLine);
+                hw = recorded;
+            }
+
+            Console.WriteLine($"backend: {real.GetType().Name}, thresholds supported: {real.ThresholdsSupported}, behaviours: {string.Join(",", real.Behaviours)}");
+            if (dryRun) Console.WriteLine("dry run: nothing will be written");
             var sm = new ChargeStateMachine(hw);
             var i = a.IndexOf("--charge");
             var cmd = i + 1 < a.Count ? a[i + 1] : "";
+            if (cmd.StartsWith("--", StringComparison.Ordinal)) cmd = "";   // "--charge --dry-run"
             try
             {
-                if (cmd == "limit" && i + 2 < a.Count) sm.SetLimit(int.Parse(a[i + 2], CultureInfo.InvariantCulture));
-                else if (cmd == "topup") sm.StartTopUp();
-                else if (cmd == "cancel") sm.Cancel();
+                switch (cmd)
+                {
+                    case "": break;                                        // read-only
+                    case "limit" when i + 2 < a.Count:
+                        sm.SetLimit(int.Parse(a[i + 2], CultureInfo.InvariantCulture));
+                        break;
+                    case "limit":
+                        Console.WriteLine("error: --charge limit needs a percentage");
+                        break;
+                    case "topup": sm.StartTopUp(); break;
+                    case "cancel": sm.Cancel(); break;
+                    // The app does this after a resume, because some firmware forgets the thresholds.
+                    case "repair":
+                        if (real is IChargeHardwareInfo info) info.Reassert();
+                        else Console.WriteLine("this backend has no saved state to re-apply");
+                        break;
+                    default:
+                        Console.WriteLine($"error: unknown command '{cmd}' (limit N | topup | cancel | repair)");
+                        break;
+                }
             }
             catch (Exception e)
             {
                 Console.WriteLine($"error: {e.Message}");
             }
-            Console.WriteLine(Json.Serialize(sm.State, pretty: true));
-            if (hw is IChargeHardwareInfo info)
+
+            if (real is IChargeHardwareInfo realInfo)
+                Console.WriteLine(Json.Serialize(realInfo.ExtraState(), pretty: true));
+            Console.WriteLine(Json.Serialize(new Dictionary<string, object?>
             {
-                info.Reassert();
-                Console.WriteLine(Json.Serialize(info.ExtraState(), pretty: true));
+                ["charge_mode"] = sm.State["charge_mode"],
+                ["charge_limit"] = sm.State["charge_limit"],
+                ["charge_target"] = sm.State["charge_target"],
+                ["saved_limit"] = real.LoadLimit() ?? (object?)null,
+            }, pretty: true));
+            if (recorded != null)
+            {
+                Console.WriteLine();
+                Console.WriteLine(recorded.Entries.Count == 0
+                    ? "dry run: no write was needed"
+                    : $"dry run: {recorded.Entries.Count} call(s) would have been made");
             }
-            (hw as IDisposable)?.Dispose();
+            (real as IDisposable)?.Dispose();
             return 0;
         }
     }
@@ -231,4 +328,5 @@ namespace ClearPower.App
         public static extern IntPtr GetStdHandle(int nStdHandle);
     }
 }
+
 

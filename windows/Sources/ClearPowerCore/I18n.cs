@@ -60,6 +60,8 @@ namespace ClearPower.Core
             ["calibratedOn"] = "Calibrated {d}",
             ["notCalibrated"] = "Not calibrated — the display is shown together with other peripherals",
             ["calibFailed"] = "Calibration failed: {m}",
+            ["winCalibFlat"] = "Calibration looks unreliable: the top brightness levels all measured the same. Keep the machine idle (no downloads, no builds) and calibrate again.",
+            ["winCalibDim"] = "Calibration looks unreliable: the sweep screen was not measured as white. Calibrate again with the screen uncovered.",
             ["prefsLanguage"] = "Language",
             ["langSystem"] = "System", ["langEn"] = "English", ["langZh"] = "中文",
             // macOS additions
@@ -148,6 +150,8 @@ namespace ClearPower.Core
             ["calibratedOn"] = "已校准：{d}",
             ["notCalibrated"] = "未校准——屏幕与其他外围合并显示",
             ["calibFailed"] = "校准失败：{m}",
+            ["winCalibFlat"] = "校准结果可能不可靠：最高几档亮度的测量值完全相同。请保持机器空闲（不要下载、不要编译）后重新校准。",
+            ["winCalibDim"] = "校准结果可能不可靠：扫描时的白屏没有被测成白色。请勿遮挡屏幕后重新校准。",
             ["prefsLanguage"] = "语言",
             ["langSystem"] = "跟随系统", ["langEn"] = "English", ["langZh"] = "中文",
             ["powerLow"] = "低电量模式", ["powerAuto"] = "自动", ["powerHigh"] = "高性能",

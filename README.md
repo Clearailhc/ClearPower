@@ -64,9 +64,12 @@ All watt values pass a 5 s smoother before display. Per-platform details and har
 |---|---|---|---|
 | Linux | Intel RAPL | ThinkPad and other vendors with the kernel threshold interface | ThinkPad |
 | macOS | Apple Silicon | all Apple Silicon Macs | yes |
-| Windows | Intel (Windows 11 Energy Meter Interface) | ThinkPad (Lenovo Power Manager driver) | – |
+| Windows | Intel (Windows 11 Energy Meter Interface) | Lenovo (verified); HP implemented and awaiting a machine to confirm it on. Dell, ASUS, MSI and Acer are detected but their charge setting is not mapped yet — see [docs/charge-control.md](docs/charge-control.md) | – |
 
-AMD RAPL, other vendors' charge interfaces and Windows sensor drivers are not done yet; PRs welcome — see [Contributing](#contributing).
+Windows has no universal API for a charge limit (the standard mechanism is an ACPI `_DSM` the kernel
+evaluates, with no user-mode route), so support is per vendor and `ClearPower.exe --charge-probe`
+reports what a given machine exposes. AMD RAPL and Windows sensor drivers are not done yet; PRs
+welcome — see [Contributing](#contributing).
 
 ## Repository layout
 

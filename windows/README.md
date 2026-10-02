@@ -31,9 +31,17 @@ service, no driver, no administrator prompt; .NET Framework 4.8 is part of Windo
 | CPU / GPU / memory / SoC | Intel RAPL through the Windows 11 **Energy Meter Interface** (`\Energy Meter(RAPL_Package0_*)`): PP0, PP1, DRAM, PKG − PP0 − PP1 |
 | Display | Calibration table × brightness (WMI `WmiMonitorBrightness`), optionally × screen content |
 | Other | Total − everything above |
-| Charge thresholds | **Lenovo Power Manager** local RPC (ThinkPad; the driver Windows Update installs). The EC keeps the thresholds across reboots and other operating systems |
+| Charge thresholds | **Lenovo Power Manager** local RPC (ThinkPad; the driver Windows Update installs). The EC keeps the thresholds across reboots and other operating systems. Other vendors: see below |
 | Power mode | `PowerGetEffectiveOverlayScheme` / `PowerSetActiveOverlayScheme` (the Settings › Power mode slider) |
 | Temperatures / fans | Not available without a kernel driver; hidden |
+
+Two fields are easy to misread in `--once` output:
+
+- `adapter_max_w` is **0 because Windows exposes no negotiated USB-PD contract and no adapter
+  rating** through a public interface — not because no adapter is connected. `adapter_w` is the
+  power actually drawn from the supply and is real; `on_ac` is the AC state.
+- `psys_w` is always `-1` on Windows: there is no platform-power sensor. On AC the system total is
+  the estimate described above and the UI marks it ≈.
 
 Charge control needs a vendor interface. Windows has no universal API for a charge limit: the
 standard mechanism is an ACPI `_DSM` that the kernel evaluates, with no user-mode route to it, so

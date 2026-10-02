@@ -141,6 +141,10 @@ namespace ClearPower.Win
             GetSystemPowerStatus(out var sps);
             var onAc = sps.ACLineStatus == 1;
             outp["on_ac"] = onAc;
+            // 0 does NOT mean "no adapter". It means Windows exposes no negotiated USB-PD contract
+            // and no adapter rating through a public interface, so the capacity of the supply is
+            // unknown - see the README. `adapter_w` (in the snapshot) is the power actually drawn
+            // from the supply, which is read from the battery class driver.
             outp["adapter_max_w"] = 0.0;
             outp["adapter_v"] = 0.0;
 

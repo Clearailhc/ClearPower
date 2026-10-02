@@ -356,35 +356,70 @@ namespace ClearPower.App
             Temps.Text = string.Join(" · ", parts);
         }
 
+        // One row per application, reused across polls. Rebuilding the visual tree every three
+        // seconds while the popover is open made the layout re-run for no reason, and a poll that
+        // arrives while the user is pointing at a row could drop the element under the pointer.
+        private sealed class AppRow
+        {
+            public Grid Root = null!;
+            public TextBlock Name = null!;
+            public TextBlock Watts = null!;
+        }
+        private readonly List<AppRow> _appRows = new List<AppRow>();
+        private TextBlock? _appsMessage;
+
         private void PollApps()
         {
             var procs = _state.Engine.GetTopProcesses(3);
-            Apps.Children.Clear();
             // Three distinct states, exactly as on macOS: without per-block energy counters there is
             // no CPU power to attribute at all, so claiming "no app is using significant energy"
             // would be a lie. -1 means unknown/unavailable, never zero.
-            if ((_state.Snapshot?.D("cpu_w") ?? -1) < 0)
-            {
-                Apps.Children.Add(AppsMessage(I18n.T("appPowerUnavailable")));
-                return;
-            }
+            if ((_state.Snapshot?.D("cpu_w") ?? -1) < 0) { ShowAppsMessage(I18n.T("appPowerUnavailable")); return; }
             var sig = procs.Where(p => p.w >= AppMinW).ToList();
-            if (sig.Count == 0)
+            if (sig.Count == 0) { ShowAppsMessage(I18n.T("noApps")); return; }
+
+            HideAppsMessage();
+            for (int i = 0; i < sig.Count; i++)
             {
-                Apps.Children.Add(AppsMessage(I18n.T("noApps")));
-                return;
+                if (i >= _appRows.Count) _appRows.Add(CreateAppRow());
+                var row = _appRows[i];
+                if (!Apps.Children.Contains(row.Root)) Apps.Children.Add(row.Root);
+                row.Name.Text = sig[i].name;
+                row.Watts.Text = I18n.FmtW(sig[i].w);
+                row.Root.Visibility = Visibility.Visible;
             }
-            foreach (var (name, w, _) in sig)
+            // Keep the spared rows in the tree but out of the way, so a shorter list does not
+            // rebuild and the next poll can reuse them.
+            for (int i = sig.Count; i < _appRows.Count; i++) _appRows[i].Root.Visibility = Visibility.Collapsed;
+        }
+
+        private AppRow CreateAppRow()
+        {
+            var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            var name = new TextBlock { TextTrimming = TextTrimming.CharacterEllipsis };
+            var watts = new TextBlock { Foreground = (Brush)FindResource("DimBrush") };
+            Grid.SetColumn(watts, 1);
+            row.Children.Add(name); row.Children.Add(watts);
+            return new AppRow { Root = row, Name = name, Watts = watts };
+        }
+
+        private void ShowAppsMessage(string text)
+        {
+            foreach (var r in _appRows) r.Root.Visibility = Visibility.Collapsed;
+            if (_appsMessage == null)
             {
-                var row = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-                row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-                var n = new TextBlock { Text = name, TextTrimming = TextTrimming.CharacterEllipsis };
-                var v = new TextBlock { Text = I18n.FmtW(w), Foreground = (Brush)FindResource("DimBrush") };
-                Grid.SetColumn(v, 1);
-                row.Children.Add(n); row.Children.Add(v);
-                Apps.Children.Add(row);
+                _appsMessage = AppsMessage(text);
+                Apps.Children.Add(_appsMessage);
             }
+            else _appsMessage.Text = text;
+            _appsMessage.Visibility = Visibility.Visible;
+        }
+
+        private void HideAppsMessage()
+        {
+            if (_appsMessage != null) _appsMessage.Visibility = Visibility.Collapsed;
         }
 
         private TextBlock AppsMessage(string text) => new TextBlock
