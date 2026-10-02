@@ -66,6 +66,8 @@ namespace ClearPower.App
 
         /// <summary>Dev aid: --shot file.png renders the popover (and settings) off-screen and exits.</summary>
         public static string? ShotPath;
+        /// <summary>Dev aid: --shot-hover &lt;node&gt; also captures the hover detail card for that node.</summary>
+        public static string? ShotHoverNode;
 
         private void RunShot(string path)
         {
@@ -82,6 +84,13 @@ namespace ClearPower.App
                     p.ShowAt(null, new TrayIcon.POINT { X = (int)Math.Round(400 * scale), Y = (int)Math.Round(400 * scale) });
                     p.UpdateLayout();
                     Save(p, path);
+                    if (ShotHoverNode != null)
+                    {
+                        // The pointer cannot be over an off-screen window, so set the hover directly.
+                        p.Sankey.HoverForShot(ShotHoverNode);
+                        p.UpdateLayout();
+                        Save(p, System.IO.Path.ChangeExtension(path, null) + "-card.png");
+                    }
                     var s = new SettingsWindow(_state!) { WindowStartupLocation = WindowStartupLocation.Manual, Left = 10, Top = 10 };
                     s.Show();
                     s.UpdateLayout();

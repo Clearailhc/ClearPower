@@ -30,12 +30,14 @@ namespace ClearPower.App
             }
             var shot = a.IndexOf("--shot");
             if (shot >= 0) App.ShotPath = shot + 1 < a.Count ? a[shot + 1] : "clearpower-popover.png";
+            var hover = a.IndexOf("--shot-hover");
+            if (hover >= 0 && hover + 1 < a.Count) App.ShotHoverNode = a[hover + 1];
             var app = new App();
             app.InitializeComponent();
             return app.Run();
         }
 
-        private const string Usage = "ClearPower.exe [--once [-v] | --charge [limit N|topup|cancel] | --shot file.png | --quit | --help]";
+        private const string Usage = "ClearPower.exe [--once [-v] | --charge [limit N|topup|cancel] | --shot file.png [--shot-hover node] | --quit | --help]";
 
         /// <summary>A WinExe has no console; borrow the parent's so the output lands in the terminal.</summary>
         private static int WithConsole(Func<int> body)

@@ -25,7 +25,6 @@ namespace ClearPower.App
         private bool _active;
         private SankeyGraph? _lastGraph;
         private string? _hover;
-        private readonly ToolTip _tip = new ToolTip { Placement = System.Windows.Controls.Primitives.PlacementMode.Mouse, StaysOpen = false };
         private Typeface _typeface = new Typeface("Segoe UI");
         private Typeface _bold = new Typeface(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
         public double FontSizeBase { get; set; } = 13;
@@ -36,8 +35,6 @@ namespace ClearPower.App
             _timer = new DispatcherTimer(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(1000 / SankeyModel.Fps) };
             _timer.Tick += (_, _) => Frame();
             Model.ReduceMotion = () => !SystemParameters.ClientAreaAnimation;
-            ToolTipService.SetInitialShowDelay(this, 250);
-            ToolTipService.SetShowDuration(this, 20000);
             MouseMove += OnMouseMove;
             MouseLeave += (_, _) => SetHover(null);
             Unloaded += (_, _) => _timer.Stop();
@@ -84,7 +81,12 @@ namespace ClearPower.App
             if (!keep) _timer.Stop();  // idle until the next sample
         }
 
-        // ---- hover tooltip: name · watts + what the node contains ----
+        // ---- hover detail: name · watts + what the node contains ----
+        // Drawn inside the canvas, exactly like the macOS and GNOME frontends, instead of being
+        // handed to a WPF ToolTip. A system tooltip is a separate window placed at the pointer: it
+        // flicks out the moment the pointer touches it (MouseLeave fires), it is not clamped to the
+        // popover, it keeps its own 250 ms delay, and it does not match this app's styling. Drawing
+        // it here keeps the card glued to its node and inside the view, with no hit testing at all.
         private void OnMouseMove(object sender, MouseEventArgs e)
         {
             var g = _lastGraph;
@@ -101,15 +103,64 @@ namespace ClearPower.App
             if (id == _hover) return;
             _hover = id;
             InvalidateVisual();
-            if (id == null || _lastGraph == null || !_lastGraph.Nodes.TryGetValue(id, out var n))
+        }
+
+        /// <summary>
+        /// Dev aid for the --shot path: hover a node by id so the detail card can be captured
+        /// off-screen, where the pointer cannot actually be over the popover.
+        /// </summary>
+        public void HoverForShot(string? id)
+        {
+            SetHover(id);
+            UpdateLayout();
+        }
+
+        /// <summary>Card width, matching the 240 the GNOME and macOS frontends use.</summary>
+        private const double TipWidth = 240;
+        private const double TipPadX = 9, TipPadY = 6, TipGapY = 6;
+
+        private void DrawHoverCard(DrawingContext dc, SankeyNode n, double W, double H)
+        {
+            var fg = Theme.Fg;
+            var dpi = VisualTreeHelper.GetDpi(this).PixelsPerDip;
+            var avail = Math.Max(Math.Min(TipWidth, Math.Max(W - 8, 60)) - 2 * TipPadX, 20);
+
+            var title = new FormattedText(
+                $"{n.Label} · {(n.Approx ? "≈" : "")}{I18n.FmtW(n.W)}",
+                CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, _bold, 12,
+                new SolidColorBrush(fg), dpi) { MaxTextWidth = avail };
+
+            var desc = new FormattedText(
+                I18n.T(SankeyModel.TipKey(n)),
+                CultureInfo.CurrentUICulture, FlowDirection.LeftToRight, _typeface, 11,
+                new SolidColorBrush(WithAlpha(fg, 0.78)), dpi)
             {
-                _tip.IsOpen = false;
-                ToolTip = null;
-                return;
-            }
-            var text = $"{n.Label} · {(n.Approx ? "≈" : "")}{I18n.FmtW(n.W)}\n{I18n.T(SankeyModel.TipKey(n))}";
-            _tip.Content = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, MaxWidth = 240 };
-            ToolTip = _tip;
+                MaxTextWidth = avail,
+                MaxLineCount = 4,
+                Trimming = TextTrimming.CharacterEllipsis,
+            };
+
+            var cardW = Math.Max(title.Width, desc.Width) + 2 * TipPadX;
+            var cardH = TipPadY + title.Height + 2 + desc.Height + TipPadY;
+
+            // Above the node when it fits, else below, then clamped into the view.
+            var above = n.Y - TipGapY - cardH >= 0;
+            var x = Math.Min(Math.Max(n.X + n.WPx / 2 - cardW / 2, 2), Math.Max(W - cardW - 2, 2));
+            var y = above ? n.Y - TipGapY - cardH : n.Y + n.H + TipGapY;
+            y = Math.Min(Math.Max(y, 2), Math.Max(H - cardH - 2, 2));
+
+            // Opaque so the bands behind it never show through, and themed so the card reads on
+            // both palettes. The popover itself is 32 % composite, so an opaque card also makes the
+            // hovered node's own readable.
+            var bg = new SolidColorBrush(Theme.AppsLight
+                ? Color.FromRgb(0xFF, 0xFF, 0xFF)
+                : Color.FromRgb(0x33, 0x33, 0x38));
+            var border = new Pen(new SolidColorBrush(WithAlpha(fg, 0.30)), 1);
+            border.Freeze(); bg.Freeze();
+            var rect = new Rect(x, y, cardW, cardH);
+            dc.DrawRoundedRectangle(bg, border, rect, 8, 8);
+            dc.DrawText(title, new Point(x + TipPadX, y + TipPadY));
+            dc.DrawText(desc, new Point(x + TipPadX, y + TipPadY + title.Height + 2));
         }
 
         // ---- drawing ----
@@ -222,6 +273,9 @@ namespace ClearPower.App
                     dc.DrawText(watts, new Point(cx - bw / 2, n.Y + (n.H - bh) / 2));
                 }
             }
+
+            // ---- hover detail card, drawn last so it sits above every band and node ----
+            if (_hover != null && g.Nodes.TryGetValue(_hover, out var hn)) DrawHoverCard(dc, hn, W, H);
         }
     }
 }
