@@ -90,6 +90,11 @@ Issues and pull requests are welcome: RAPL on AMD, charge-threshold interfaces o
 
 Roadmap: Windows charge control beyond Lenovo and a signed sensor driver for temperatures; macOS notarization and SMAppService; AMD RAPL on Linux.
 
+Releasing is automated: bump the three version files, add the changelog entry and
+`docs/RELEASE-v<version>.md`, then push a `v<version>` tag and
+[the workflow](.github/workflows/build.yml) builds all three platforms and publishes the Release.
+The step-by-step is in [docs/releasing.md](docs/releasing.md).
+
 ## License
 
 [Apache-2.0](LICENSE)

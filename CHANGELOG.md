@@ -2,6 +2,63 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.7.0] — 2026-10-02
+
+Windows-focused: the apps list, the popover's position and the node detail card were all wrong
+there, and the same app-power bug existed on macOS and Linux.
+
+### Fixed
+- **Per-application power.** The idle floor was the raw ten-minute *minimum* of package power, so
+  one bogus reading stuck for the whole window: an unknown package power (`-1` while RAPL or the
+  Energy Meter is still being primed, or after resume from sleep) was recorded as 0 W and inflated
+  every later budget, while a sample taken during the smoothing ramp was recorded as the floor and
+  collapsed the budget to nothing — the apps box then claimed "no apps using significant energy"
+  on a busy machine. The floor is now a low *percentile* of the window, which tracks the quiet end
+  of the distribution instead of one outlier and cannot be moved by a load spike. Fixed on
+  Windows, macOS (`ProcessBudget.swift`) and Linux (`procs.py`), which shared the bug verbatim.
+- **Windows: the popover was anchored to a primary-monitor box that did not exist.**
+  `SystemParameters.WorkArea` is always the primary monitor's usable area *in raw pixels*, so at
+  225 % scale it reported 1280x752 while the real work area was 2880x1692 px = 1280x752 layout
+  units, and the tray icon's physical rectangle was converted with whatever DPI the window
+  happened to be on. The popover now resolves the monitor the icon is on, converts with *that*
+  monitor's scale, clamps inside its usable area, and re-places itself when the display
+  configuration or the window's DPI scale changes. `EnablePerMonitorDpiAwareness` is switched on
+  — .NET Framework defaults it off, so WPF had been ignoring the PerMonitorV2 awareness the
+  manifest always declared.
+- **Windows: the node detail card never behaved like the other platforms.** It was a WPF
+  `ToolTip` — a separate window placed at the pointer, which flicked out whenever the pointer
+  touched it, was not clamped to the popover and kept the system's 250 ms delay. It is now drawn
+  in the diagram itself, next to the node, as on macOS and GNOME.
+- **Windows: the settings window** is constrained to its own monitor and re-fitted when display
+  settings change, which also recovers a window stranded on a removed display.
+- **Windows: screen-content sampling** no longer guesses which panel it is looking at. It only
+  answers on a single-monitor system, because the calibration measures one panel; otherwise the
+  reading is reported as unknown and the display stays folded into "other".
+
+### Changed
+- The apps poll no longer takes the engine lock from the UI thread (it could block on a sampling
+  tick or a full process enumeration), and it no longer advances the energy sampling interval for
+  nothing when power is unknown.
+- The apps box distinguishes "application power data unavailable" (no per-block counter to
+  attribute, so no list can be produced) from "no apps using significant energy", as macOS
+  already did.
+
+### Added
+- `ClearPower.exe --procs` prints what the apps box is working from: the package power the
+  attribution was given, the CPU power, and each row's watts and CPU share.
+- `ClearPower.exe --shot --shot-hover <node>` renders the popover with a node's detail card, for
+  off-screen visual checks.
+
+### Validation
+- Windows tests grew from 9 to 27: app-power attribution (unknown/ramping readings, interval
+  handling, the percentile floor, a load spike) and window geometry (225 % primary, 100 % and
+  150 % secondaries with negative origins, an oversized popover, recovery from a removed display).
+- Verified on Windows 11 (16 logical cores, Energy Meter RAPL, 225 % scale): with one core fully
+  busy the app appears in the list at 1.05 → 1.89 W as the load ramps, and the rows sum to the
+  measured budget.
+- **Not verified:** a real second display at a different scale was unavailable, so the
+  cross-monitor paths are covered by unit tests and review only.
+
 ## [0.6.1] — 2026-09-28
 
 - Refresh window layout and Canvas scale when displays or backing scales change;

@@ -90,6 +90,10 @@ packaging/       systemd 单元、D-Bus 策略、polkit 动作、桌面项、deb
 
 路线图：Windows 上 Lenovo 之外的充电控制，以及带签名的温度传感器驱动；macOS 公证与 SMAppService；Linux 上的 AMD RAPL。
 
+发版已自动化：改好三处版本号、补上 CHANGELOG 条目和 `docs/RELEASE-v<version>.md`，再推送
+`v<version>` 标签，[工作流](.github/workflows/build.yml) 就会构建三个平台并发布 Release。
+详细步骤见 [docs/releasing.md](docs/releasing.md)。
+
 ## 许可证
 
 [Apache-2.0](LICENSE)
