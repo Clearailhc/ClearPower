@@ -2,6 +2,47 @@
 
 All notable changes to ClearPower. Versions follow [SemVer](https://semver.org/).
 
+## [0.7.1] — 2026-10-02
+
+Follow-up to 0.7.0: the charge-control work is easier to adopt, and a bad display calibration now
+says so.
+
+### Fixed
+- **Windows: a completed calibration that measured nothing useful now reports it.** The panel table
+  is built from a running maximum of (battery − SoC − memory) per brightness level, so a sweep taken
+  while the machine was busy flattens at the top — the machine this was developed on produced
+  `(50, 1.302) (75, 1.302) (100, 1.302)`, which leaves a "calibrated" display whose brightness does
+  nothing and no hint that re-running would help. Three or more collapsed top levels, or a sweep
+  screen that did not measure as white, now sets a message in Settings.
+- **Windows: `--charge` no longer writes unless asked.** It called `Reassert()` unconditionally, so a
+  plain read-only invocation still wrote the saved limit to the embedded controller.
+
+### Added
+- **`--charge --dry-run`** prints the exact calls a command would make — thresholds, behaviour,
+  saved limit — and makes none of them. This is how someone on an unsupported vendor can report what
+  the app intends to do without letting it touch their hardware.
+- **`--charge repair`** re-applies the saved limit, which is what the app does after a resume
+  because some firmware forgets the thresholds. It was previously reachable only by restarting.
+- **`--charge-probe` ends with a paste-ready report** (version, OS, machine vendor and model, CPU,
+  and every backend's verdict), so a machine that is not covered yet can be reported in one step.
+  Recognised vendor namespaces are listed with their battery/charge classes, properties and methods.
+
+### Changed
+- Windows charge control is a registry of per-vendor backends. **Lenovo is verified on hardware; HP
+  is implemented against its published `root\wmi` interface but not verified on HP hardware.** Dell,
+  ASUS, MSI and Acer detect and report their own interface, but their charge setting is not mapped,
+  so the buttons stay hidden rather than writing a guess. `docs/charge-control.md` explains why there
+  is no universal route (the standard mechanism is an ACPI `_DSM` the kernel evaluates, with no
+  user-mode API) and how to add a vendor.
+- The apps box reuses its rows instead of rebuilding them every three seconds.
+- README: the hardware support table now matches `docs/charge-control.md`, and `adapter_max_w = 0`
+  is documented as "Windows exposes no adapter rating", not "no adapter connected".
+
+### Validation
+- Windows tests 35 → 42; the seven Python daemon tests still pass. The dry run is covered for
+  "makes no calls", "records them in order", "still reports the real capability" and the repair path.
+- The calibration check is covered for a flat table, a monotone one, and an all-zero one.
+
 ## [0.7.0] — 2026-10-02
 
 Windows-focused: the apps list, the popover's position and the node detail card were all wrong
