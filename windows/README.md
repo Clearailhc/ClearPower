@@ -39,6 +39,20 @@ Charge control needs the vendor interface: ThinkPads with the Lenovo Power Manag
 today. Other vendors show the diagram without the charge buttons; contributions welcome.
 Force-discharge has no public Windows interface, so the Discharge button is hidden.
 
+Notes on the estimates:
+
+- **Apps.** Per-application power is the dynamic CPU power (package power − its ten-minute
+  rolling minimum) split by CPU share, so the apps take the *rise* above idle rather than a slice
+  of the whole machine; a row below 0.5 W is hidden, exactly as on Linux and macOS. It needs the
+  Energy Meter: without RAPL the box says "application power data unavailable" instead of
+  claiming nothing is running.
+- **Screen content.** With `content-aware` on, the popover samples the screen every 5 s to scale
+  the panel estimate by what is on it. That only answers on a single-monitor system, because the
+  calibration measures one panel; with a second screen attached the reading is reported as
+  unknown and the display stays folded into "other".
+- **Monitors.** The popover anchors to the tray icon's own monitor at that monitor's scale, and
+  re-places itself when the display configuration changes or the window's DPI scale does.
+
 ## Development
 
 ```powershell
@@ -49,6 +63,7 @@ dotnet test  windows/Tests/ClearPowerCoreTests            # golden tests against
 ClearPower.exe --once -v                                  # one snapshot as JSON + parts-vs-total check
 ClearPower.exe --charge [limit N | topup | cancel]        # inspect / drive the charge backend
 ClearPower.exe --shot popover.png                         # render the popover and settings off-screen
+ClearPower.exe --shot p.png --shot-hover cpu               # ... plus the hover detail card for a node
 pwsh windows/build.ps1                                    # dist/ installer + portable zip + SHA256SUMS
 ```
 

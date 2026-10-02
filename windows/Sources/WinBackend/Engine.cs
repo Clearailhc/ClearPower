@@ -205,10 +205,19 @@ namespace ClearPower.Win
             lock (_gate) DisplayCal.SetContent(apl, Clock.MonotonicNow());
         }
 
+        /// <summary>
+        /// The latest top processes. Read without taking the engine lock and without poking the
+        /// sampler on purpose: the popover calls this every three seconds from the UI thread, and
+        /// taking the lock there means blocking until the current tick has finished (battery
+        /// IOCTL, WMI brightness, PDH counters) or waiting behind a full process enumeration.
+        /// <see cref="TopProcesses"/> is only replaced wholesale on the engine thread, so a plain
+        /// field read is enough. The engine samples at full rate while the popover is open
+        /// (<see cref="Hot"/>), which is what keeps this fresh.
+        /// </summary>
         public List<(string name, double w, double cpuPct)> GetTopProcesses(int n)
         {
-            Touch();
-            lock (_gate) return TopProcesses.GetRange(0, Math.Min(n, TopProcesses.Count));
+            var top = TopProcesses;
+            return top.GetRange(0, Math.Min(n, top.Count));
         }
 
         public List<(double t, double v)> GetHistory(string field, double seconds)

@@ -47,7 +47,7 @@ namespace ClearPower.App
         {
             InitializeComponent();
             _state = state;
-            _appsTimer.Tick += (_, _) => PollApps();
+            _appsTimer.Tick += (_, _) => { _state.Engine.Touch(); PollApps(); };
             _contentTimer.Tick += (_, _) => SampleContent();
             _layoutTimer.Tick += (_, _) => { _layoutTimer.Stop(); Place(); };
             SizeChanged += (_, _) => { if (IsVisible) Place(); };

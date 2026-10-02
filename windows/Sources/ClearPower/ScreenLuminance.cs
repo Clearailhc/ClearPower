@@ -44,9 +44,17 @@ namespace ClearPower.App
             return lut;
         }
 
-        /// <summary>Mean linear luminance of the primary display, or -1 when it cannot be captured.</summary>
+        /// <summary>
+        /// Mean linear luminance of the display the panel estimate is calibrated against, or -1 when
+        /// it cannot be captured. The whole-machine estimate learns the *panel* emission during
+        /// calibration and WMI brightness drives one panel, so this answers only on a single-monitor
+        /// system: with a second screen attached, the pixels sampled here need not be the pixels that
+        /// panel is showing, and guessing would silently bias the display share of the breakdown.
+        /// -1 means unknown, which the model already handles by folding the display into "other".
+        /// </summary>
         public static double Sample()
         {
+            if (GetSystemMetrics(80 /* SM_CMONITORS */) > 1) return -1;
             var sw = GetSystemMetrics(0); var sh = GetSystemMetrics(1);
             if (sw <= 0 || sh <= 0) return -1;
             var screen = GetDC(IntPtr.Zero);
