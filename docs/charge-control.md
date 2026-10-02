@@ -42,16 +42,21 @@ carry no charge limit. They are useful for telemetry, not control.
 | Vendor | Interface | State |
 |---|---|---|
 | **Lenovo** | Power Manager local RPC (`ncalrpc` endpoint `BaseModuleRpcEndpoint_0`) | **Implemented and verified on hardware.** This is the interface Lenovo's own tools use, reachable from a normal user session; documented by the MIT-licensed [alandau/LenPwrCtl](https://github.com/alandau/LenPwrCtl) |
-| Dell | Dell Command \| Power Manager WMI (`root\dcim\sysman`), or the BIOS attribute `PrimaryBatteryChargeConfiguration` under `root\dcim\sysman\biosattributes` | Probe detects the provider; the charge setting is **not mapped yet** and has not been verified on hardware |
-| HP | BIOS setting through `root\HP\InstrumentedBIOS` (needs HP's client management stack) | Probe detects the provider; **not mapped yet** |
+| **HP** | Charge limit in `root\wmi`: `HPBatteryChargeLimit` (`ChargeLimit` + a setter), or `HP_BIOSSettingInterface` | **Implemented against the published interface, not verified on HP hardware.** The provider publishes one value rather than a start/stop pair, so both thresholds carry it; a provider with no setter is reported read-only instead of claimed |
+| Dell | Dell Command \| Power Manager WMI (`root\dcim\sysman`), or the BIOS attribute `PrimaryBatteryChargeConfiguration` under `root\dcim\sysman\biosattributes` | Probe detects the provider; the charge setting is **not mapped yet** |
 | ASUS | `AsusAtkWMI_WMNB` in `root\wmi` (ATK interface, public via the `asus-wmi` kernel driver) | Probe detects the class; **not mapped yet** |
 | MSI | `MSI_ACPI` in `root\wmi` | Probe detects the class; **not mapped yet** |
 | Acer | `AcerGamingWMI` / `AcerWMI` / `AcerBatteryCare` | Probe detects the class; **not mapped yet** |
 
-"Probe detects" means the backend checks whether the interface exists and reports it. It does not
-write anything until it has been mapped and verified, so on an unmapped machine the charge buttons
-stay hidden — which is the same behaviour as unsupported Linux hardware. Being wired to a guess
-would be worse than being absent.
+"Probe detects" means the backend checks whether the interface exists and reports it. A backend only
+writes once it has been mapped, so on an unmapped machine the charge buttons stay hidden — the same
+behaviour as unsupported Linux hardware. Being wired to a guess would be worse than being absent.
+
+The HP path is worth reading as the worked example of the shape a provider must have: one readable
+property plus a setter method. `WmiChargeHardware` adapts that to the two-threshold interface the
+state machine expects (both thresholds carry the single value; the start threshold is the limit
+minus the usual five-point hysteresis), and the equivalent for a new vendor is usually the same
+shape with different names.
 
 Vendors that expose **no** public interface at all are not listed: without a reverse-engineered
 interface there is nothing to call. Direct ACPI EC access (WinRing0, `inpoutx64`) is deliberately

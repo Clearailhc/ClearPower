@@ -67,21 +67,35 @@ namespace ClearPower.Win
     }
 
     // ---- HP -----------------------------------------------------------------------------
-    // HP exposes battery care as a BIOS setting through root\HP\InstrumentedBIOS, which needs HP's
-    // client management stack installed.
+    // HP laptops publish a battery charge limit through root\wmi. Implemented against the published
+    // interface but not verified on HP hardware, so see the note at the top of this file.
+    //
+    // A provider that publishes the value without a setter is reported as read-only rather than
+    // claimed, so the charge button stays hidden instead of failing when the user clicks it.
     internal sealed class HpBackend : IVendorChargeBackend
     {
-        public string Name => "HP BIOS (Battery Health Manager)";
+        public string Name => "HP battery charge limit (root\\wmi)";
         public string Vendor => "HP";
 
         public IChargeHardware? Probe(Action<string> log, out string detail)
         {
-            if (!WmiProbe.NamespaceExists(@"root\HP\InstrumentedBIOS"))
+            var limit = HpChargeLimit.Detect(log);
+            if (limit != null)
             {
-                detail = "no root\\HP\\InstrumentedBIOS namespace";
+                if (!limit.Writable)
+                {
+                    detail = "charge-limit provider is read-only here; not claimed";
+                    return null;
+                }
+                detail = "charge-limit provider found; unverified on HP hardware";
+                return new WmiChargeHardware(limit);
+            }
+            if (WmiProbe.NamespaceExists(@"root\HP\InstrumentedBIOS"))
+            {
+                detail = "needs the HP BIOS setting mapped (Battery Health Manager); provider present, not verified";
                 return null;
             }
-            detail = "needs the HP BIOS setting mapped; provider present but not verified on hardware";
+            detail = "no HP charge-limit provider";
             return null;
         }
     }

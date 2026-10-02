@@ -37,13 +37,19 @@ service, no driver, no administrator prompt; .NET Framework 4.8 is part of Windo
 
 Charge control needs a vendor interface. Windows has no universal API for a charge limit: the
 standard mechanism is an ACPI `_DSM` that the kernel evaluates, with no user-mode route to it, so
-every tool speaks a vendor interface instead. ClearPower keeps one backend per vendor and tries
-them in order; **Lenovo is the one implemented and verified on real hardware** (Power Manager's
-local RPC, reachable from a normal user session). Dell, HP, ASUS, MSI and Acer backends detect
-their own interface and report what they find, but their charge setting is not mapped yet, so the
-charge buttons stay hidden rather than writing a guess. `ClearPower.exe --charge-probe` prints
-exactly what a machine exposes; [docs/charge-control.md](../docs/charge-control.md) explains how to
-add one. Force-discharge has no public Windows interface, so the Discharge button stays hidden.
+every tool speaks a vendor interface instead. ClearPower keeps one backend per vendor and tries them
+in order:
+
+| Vendor | Charge limit |
+|---|---|
+| **Lenovo** | **Works.** Power Manager's local RPC, the interface Lenovo's own tools use; verified on hardware |
+| **HP** | **Implemented, not verified on HP hardware.** A charge limit published in `root\wmi` |
+| Dell, ASUS, MSI, Acer | The backend detects and reports the vendor's interface, but its charge setting is not mapped yet, so the buttons stay hidden rather than writing a guess |
+
+`ClearPower.exe --charge-probe` prints exactly what a machine exposes — every backend's verdict, and
+for a recognised vendor provider the classes it offers with their properties and methods. That
+output is what adding a vendor needs; [docs/charge-control.md](../docs/charge-control.md) explains
+the contract. Force-discharge has no public Windows interface, so the Discharge button stays hidden.
 
 Notes on the estimates:
 

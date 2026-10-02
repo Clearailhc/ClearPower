@@ -365,7 +365,7 @@ namespace ClearPower.Core.Tests
             Assert.Single(baseline);
             Fx.Near(baseline[0].w, 0.0, 1e-9, "the first reading is its own floor");
 
-            // t=1: unknown power. The cached row comes back, and the interval must stay as it was —
+            // t=1: unknown power. The cached row comes back, and the interval must stay as it was -
             // the old code consumed it here, pushing the next real attempt out to t=4 instead of t=3.
             var skipped = pb.Sample(1, -1, 0.0, () => usage);
             Assert.Single(skipped);
@@ -639,20 +639,113 @@ namespace ClearPower.Core.Tests
         }
     }
 
+    /// <summary>A charge-limit provider that records what was written, so the adapter logic can be
+    /// exercised without vendor hardware.</summary>
+    internal sealed class FakeChargeLimit : IWmiChargeLimit
+    {
+        public int Value = 100;
+        public List<int> Writes = new List<int>();
+        public bool ThrowOnWrite;
+        public string Method => "fake-wmi (test)";
+        public int? Read() => Value;
+        public void Write(int percent)
+        {
+            if (ThrowOnWrite) throw new ChargeException(13, "provider refused");
+            Writes.Add(percent);
+            Value = percent;
+        }
+    }
+
+    /// <summary>An in-memory limit store, so these tests never touch the real application state.</summary>
+    internal sealed class FakeLimitStore : ILimitStore
+    {
+        private int? _v;
+        public int? Load() => _v;
+        public void Save(int limit) => _v = limit;
+    }
+
+    /// <summary>
+    /// The vendor-WMI charge path: one published value, no start/stop pair. These are the parts that
+    /// would otherwise only ever be exercised on the vendor's own hardware.
+    /// </summary>
+    public class WmiChargeHardwareTests
+    {
+        [Fact]
+        public void TheSinglePublishedValueCarriesBothThresholds()
+        {
+            var fake = new FakeChargeLimit();
+            var hw = new WmiChargeHardware(fake, store: new FakeLimitStore());
+            hw.WriteThresholds(85, 90);
+            Assert.Equal(new[] { 90 }, fake.Writes);
+
+            var st = hw.ExtraState();
+            Assert.Equal(90, st["charge_end_threshold"]);
+            Assert.Equal(85, st["charge_start_threshold"]);   // end minus the 5-point hysteresis
+            Assert.Equal(true, st["charge_threshold_enabled"]);
+            Assert.Equal("vendor-wmi", st["control_method"]);
+        }
+
+        /// <summary>No vendor here can force a discharge, so the popover must keep that button hidden.</summary>
+        [Fact]
+        public void ForceDischargeIsNotClaimed()
+        {
+            var hw = new WmiChargeHardware(new FakeChargeLimit(), store: new FakeLimitStore());
+            Assert.DoesNotContain("force-discharge", hw.Behaviours);
+            hw.WriteBehaviour("force-discharge");   // must not throw, and must not be advertised
+        }
+
+        /// <summary>
+        /// A read-only provider is not claimed: the backend returns null for it, and if it is used
+        /// anyway a write fails loudly instead of pretending the limit changed.
+        /// </summary>
+        [Fact]
+        public void ReadOnlyProviderRefusesToWrite()
+        {
+            var fake = new FakeChargeLimit();
+            var hw = new WmiChargeHardware(fake, thresholdsSupported: false, store: new FakeLimitStore());
+            Assert.False(hw.ThresholdsSupported);
+            Assert.Throws<ChargeException>(() => hw.WriteThresholds(85, 90));
+            Assert.Empty(fake.Writes);
+        }
+
+        [Fact]
+        public void ALimitIsSavedAndReapplied()
+        {
+            var fake = new FakeChargeLimit();
+            var store = new FakeLimitStore();
+            var hw = new WmiChargeHardware(fake, store: store);
+            hw.SaveLimit(80);
+            Assert.Equal(80, store.Load());
+            fake.Value = 100;          // firmware forgot it
+            hw.Reassert();
+            Assert.Equal(80, fake.Value);
+        }
+
+        /// <summary>A provider that throws must not take the app down with it.</summary>
+        [Fact]
+        public void ARefusingProviderPropagatesAsChargeException()
+        {
+            var fake = new FakeChargeLimit { ThrowOnWrite = true };
+            var hw = new WmiChargeHardware(fake, store: new FakeLimitStore());
+            Assert.Throws<ChargeException>(() => hw.WriteThresholds(85, 90));
+        }
+    }
+
     public class JsonTests
     {
         [Fact]
         public void RoundTrip()
         {
-            var snap = new Dictionary<string, object?> { ["sys_w"] = 12.5, ["bat_pct"] = 80, ["on_ac"] = true, ["name"] = "屏幕 \"x\"", ["nan"] = double.NaN, ["list"] = new List<object?> { 1.0, "a" } };
+            var snap = new Dictionary<string, object?> { ["sys_w"] = 12.5, ["bat_pct"] = 80, ["on_ac"] = true, ["name"] = "灞忓箷 \"x\"", ["nan"] = double.NaN, ["list"] = new List<object?> { 1.0, "a" } };
             var text = Snapshot.Json(snap, pretty: false);
             var back = Json.ParseObject(text);
             Assert.Equal(12.5, back.D("sys_w"));
             Assert.Equal(80, back.I("bat_pct"));
             Assert.True(back.B("on_ac"));
-            Assert.Equal("屏幕 \"x\"", back.S("name"));
+            Assert.Equal("灞忓箷 \"x\"", back.S("name"));
             Assert.Equal(-1.0, back.D("nan"));
             Assert.Equal(2, Fx.Arr(back["list"]).Count);
         }
     }
 }
+

@@ -109,14 +109,31 @@ namespace ClearPower.App
             return 0;
         }
 
-        /// <summary>--charge [limit N | topup | cancel]: inspect or drive the charge backend from a terminal.</summary>
+        /// <summary>Which vendor providers the top-selling laptop brands are known to use.</summary>
+        private static readonly (string Vendor, string Ns)[] VendorNamespaces =
+        {
+            ("Dell",   @"root\dcim\sysman"),
+            ("Dell",   @"root\dcim\sysman\biosattributes"),
+            ("Dell",   @"root\Dell"),
+            ("HP",     @"root\HP\InstrumentedBIOS"),
+            ("HP",     @"root\HP\BIOSSettingInterface"),
+            ("HP",     @"root\HP"),
+            ("ASUS",   @"root\Asus"),
+            ("ASUS",   @"root\WMI"),
+            ("Acer",   @"root\Acer"),
+            ("MSI",    @"root\MSI"),
+            ("Lenovo", @"root\Lenovo"),
+            ("Lenovo", @"root\WMI"),
+        };
+
         /// <summary>
         /// --charge-probe: what charge-control interfaces this machine exposes.
         ///
         /// Windows has no universal API for a charge limit, so support is per vendor and every
-        /// vendor needs its own interface. This prints each backend's probe result, the WMI
-        /// namespaces that exist, and the battery-related classes in root\wmi, which is exactly what
-        /// is needed to add a backend for a machine that is not covered yet.
+        /// vendor needs its own interface. This prints each backend's probe result, then for every
+        /// known vendor provider the classes it offers that look like battery or charge control,
+        /// with their properties and methods. That is exactly what is needed to name a vendor's
+        /// charge setting instead of guessing at it.
         /// </summary>
         private static int ChargeProbe()
         {
@@ -142,24 +159,39 @@ namespace ClearPower.App
             Console.WriteLine($"  ({battery.Count} classes; the standard ones are read-only and carry no charge limit)");
 
             Console.WriteLine();
-            Console.WriteLine("== vendor charge namespaces present ==");
-            var candidates = new[]
+            Console.WriteLine("== vendor providers ==");
+            foreach (var ns in VendorNamespaces.Select(x => x.Ns).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                @"root\dcim\sysman", @"root\dcim\sysman\biosattributes",
-                @"root\HP\InstrumentedBIOS", @"root\HP\BIOSSettingInterface",
-                @"root\wmi",
-            };
-            foreach (var ns in candidates)
-                Console.WriteLine($"  {(WmiProbe.NamespaceExists(ns) ? "present " : "absent  ")} {ns}");
+                var vendors = string.Join("/", VendorNamespaces.Where(x => x.Ns.Equals(ns, StringComparison.OrdinalIgnoreCase)).Select(x => x.Vendor).Distinct());
+                var present = WmiProbe.NamespaceExists(ns);
+                Console.WriteLine($"  {(present ? "present" : "absent ")}  {ns}   [{vendors}]");
+                if (!present) continue;
+                // Only the classes that could plausibly carry a charge setting, so the report stays
+                // readable on a machine whose provider has hundreds of classes.
+                foreach (var kw in new[] { "Battery", "Charge", "Power", "BIOS" })
+                    foreach (var cls in WmiProbe.ListClasses(ns, kw))
+                        DescribeClass(ns, cls, kw);
+            }
 
             Console.WriteLine();
             Console.WriteLine("== root namespaces (to spot an unrecognised vendor provider) ==");
-            var namespaces = WmiProbe.ListNamespaces();
-            foreach (var ns in namespaces) Console.WriteLine("  " + ns);
+            foreach (var ns in WmiProbe.ListNamespaces()) Console.WriteLine("  " + ns);
 
             Console.WriteLine();
-            Console.WriteLine("Report this output when asking for a new vendor: docs/charge-control.md says what it needs.");
+            Console.WriteLine("Report this output when asking for a vendor: docs/charge-control.md says what it needs.");
             return 0;
+        }
+
+        private static readonly HashSet<string> Described = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        private static void DescribeClass(string ns, string cls, string keyword)
+        {
+            if (!Described.Add(ns + "\\" + cls)) return;   // the four keywords overlap
+            var members = WmiProbe.DescribeClass(ns, cls);
+            Console.WriteLine($"      {cls}  ({keyword})");
+            if (members.Count == 0) { Console.WriteLine("        (no readable members)"); return; }
+            foreach (var m in members.Take(24)) Console.WriteLine($"        {m}");
+            if (members.Count > 24) Console.WriteLine($"        ... {members.Count - 24} more");
         }
 
         private static int ChargeInfo(List<string> a)
