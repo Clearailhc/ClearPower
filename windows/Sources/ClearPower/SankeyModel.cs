@@ -160,7 +160,14 @@ namespace ClearPower.App
                 var s = Sinks[5].Clone(); s.Key = "sys_w"; s.Label = "system";
                 return new List<Sink> { s };
             }
-            var vis = Sinks.Where(s => !(s.Id == "disp" && !displayKnown) && tg.D(s.Key) >= MinSinkW).Select(s => s.Clone()).ToList();
+            // The display is treated differently from the other sinks. The per-block counters give
+            // the rest a hard zero when idle, but the panel is a *calibrated estimate*: on a dark
+            // desktop its content correction legitimately makes it small, and folding it into
+            // "other" at that point is what made a completed calibration look like it had done
+            // nothing. It is dropped only when the estimate is exactly zero (panel off).
+            var vis = Sinks.Where(s => !(s.Id == "disp" && !displayKnown)
+                                       && tg.D(s.Key) >= (s.Id == "disp" ? 0.0 : MinSinkW))
+                           .Select(s => s.Clone()).ToList();
             if (!vis.Any(s => s.Id == "other")) vis.Add(Sinks[5].Clone());
             foreach (var s in vis)
                 if (s.Id == "other" && !displayKnown) s.Label = "displayOther";

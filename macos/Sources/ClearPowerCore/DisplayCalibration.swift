@@ -22,6 +22,9 @@ public final class DisplayCalibration {
     public static let settleS = 1.5
     public static let samples = 5
     public static let sampleGapS = 1.0
+    /// How much of the calibrated panel emission survives the darkest content; the rest scales with
+    /// the whole-screen average picture level (see `emissionW`).
+    public static let displayContentFloor = 0.6
 
     public private(set) var state = "idle"  // idle | running | done | failed
     public private(set) var progress = 0.0
@@ -127,7 +130,15 @@ public final class DisplayCalibration {
         }
         let a = freshApl(now)
         if a >= 0 && aplCal > 0.02 {
-            e *= Swift.max(0.02, Swift.min(1.2, a / aplCal))
+            // Bound the content correction hard. A black pixel emits nothing, but a dark desktop is
+            // not a black panel: the driving electronics, the TFT and the room's reflection off the
+            // glass all stay. Scaling linearly by the whole-screen average drove the estimate to 2 %
+            // of the calibrated value, below the sink visibility floor, so the display vanished from
+            // the diagram. Measured on a 2880x1800 OLED: at full brightness the black-to-white swing
+            // is ~0.4 W, inside the noise of the measurement, while the entire brightness range
+            // moves only ~1.2 W - content is a small correction, never the main term.
+            let ratio = Swift.max(0.02, Swift.min(1.2, a / aplCal))
+            e *= Self.displayContentFloor + (1 - Self.displayContentFloor) * ratio
         }
         return e
     }

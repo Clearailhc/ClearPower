@@ -26,6 +26,11 @@ namespace ClearPower.Core
     public sealed class DisplayCalibration
     {
         public static readonly double[] Levels = { 0.0, 0.01, 0.1, 0.25, 0.5, 0.75, 1.0 };
+        /// <summary>
+        /// How much of the calibrated panel emission survives the darkest content. The rest scales
+        /// with the whole-screen average picture level (see <see cref="EmissionW"/>).
+        /// </summary>
+        public const double DisplayContentFloor = 0.6;
         /// <summary>Seconds to wait after a brightness change before sampling (Linux/macOS: 1.5).</summary>
         public double SettleS { get; set; } = 1.5;
         public int Samples { get; set; } = 5;
@@ -153,7 +158,22 @@ namespace ClearPower.Core
                 }
             }
             var a = FreshApl(now);
-            if (a >= 0 && AplCal > 0.02) e *= Math.Max(0.02, Math.Min(1.2, a / AplCal));
+            if (a >= 0 && AplCal > 0.02)
+            {
+                // Bound the content correction hard. A black pixel emits nothing, but a dark Windows
+                // desktop is not a black panel: the driving electronics, the TFT and the room's
+                // reflection off the glass all stay lit. Scaling linearly by the whole-screen
+                // average drove this panel to 2 % of its calibrated value, i.e. below the sink
+                // visibility floor, so the display vanished from the diagram entirely.
+                //
+                // Measured on a 2880x1800 OLED at 225 % (battery truth minus SoC and memory, minimum
+                // over each 14 s window): at full brightness rest was 5.31 W black, 5.46 W grey and
+                // 4.89 W white - a 0.4 W swing that sits inside the noise floor of the measurement -
+                // while the whole brightness range only moves about 1.2 W. Content is therefore a
+                // small correction on this hardware, never the main term.
+                var ratio = Math.Max(0.02, Math.Min(1.2, a / AplCal));
+                e *= DisplayContentFloor + (1 - DisplayContentFloor) * ratio;
+            }
             return e;
         }
 
