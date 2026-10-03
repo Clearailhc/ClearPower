@@ -67,7 +67,7 @@ class DisplayCalibration:
 
     @property
     def calibrated(self):
-        return len(self.table) >= 2
+        return len(self.table) >= 2 and any(p[1] > 0.001 for p in self.table)
 
     # ---- content level from the UI -------------------------------------------
     def set_content(self, apl, now):

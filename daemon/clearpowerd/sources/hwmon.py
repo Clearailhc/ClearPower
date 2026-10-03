@@ -27,10 +27,12 @@ def _labelled(h, prefix):
 class Hwmon:
     def __init__(self):
         self.thinkpad = _find("thinkpad")
+        self.asus = _find("asus")
         self.coretemp = _find("coretemp")
         self.nvme = _find("nvme")
         self.tp_temps = _labelled(self.thinkpad, "temp")
         self.tp_fans = _labelled(self.thinkpad, "fan")
+        self.asus_fans = _labelled(self.asus, "fan")
         self.core_temps = _labelled(self.coretemp, "temp")
         self.nvme_temps = _labelled(self.nvme, "temp")
 
@@ -52,7 +54,8 @@ class Hwmon:
             if lbl in self.nvme_temps:
                 nvme = self._c(self.nvme_temps[lbl])
                 break
-        fans = sorted(self.tp_fans.items())
+        fans_map = self.tp_fans if self.tp_fans else self.asus_fans
+        fans = sorted(fans_map.items())
         fan1 = read_int(fans[0][1]) if len(fans) > 0 else -1
         fan2 = read_int(fans[1][1]) if len(fans) > 1 else -1
         return {
