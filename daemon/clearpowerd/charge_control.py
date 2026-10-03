@@ -68,11 +68,13 @@ class ChargeControl:
             order = order[::-1]
         try:
             for path, value in order:
-                write_str(path, value)
+                if os.path.exists(path):
+                    write_str(path, value)
         except OSError:
             # firmware quirk: try the other order once before giving up
             for path, value in order[::-1]:
-                write_str(path, value)
+                if os.path.exists(path):
+                    write_str(path, value)
 
     def _write_behaviour(self, b):
         if not self.behaviour_supported:

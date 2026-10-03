@@ -17,6 +17,8 @@ class Rapl:
             if not name:
                 continue
             key = name.split("-")[0]  # package-0 -> package
+            if key == "psys" and read_int(os.path.join(d, "enabled")) == 0:
+                continue
             self.domains[key] = d
         self._wrap = {k: read_int(os.path.join(p, "max_energy_range_uj")) or (1 << 32)
                       for k, p in self.domains.items()}

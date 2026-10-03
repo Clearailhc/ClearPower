@@ -107,7 +107,7 @@ class Sampler:
         # ---- whole-machine draw ----
         if not on_ac and bat_w < -0.05:
             sys_w, sys_source = -bat_w, "battery"      # physical truth incl. all losses
-        elif psys > 0:
+        elif psys > 0 and (package <= 0 or psys >= package * 0.7):
             sys_w, sys_source = psys, "psys"
         elif package > 0:
             sys_w, sys_source = package + 3.0, "estimate"
