@@ -67,8 +67,8 @@ class Sampler:
         return self.ema[key].update(value, now)
 
     @staticmethod
-    def _rest(psys, package, dram, bat_w=None, on_ac=True):
-        """Platform power not attributable to the SoC or memory (display + peripherals)."""
+    def _rest(psys, package, dram, bat_w=None, on_ac=True, dgpu=0.0):
+        """Platform power not attributable to the SoC, memory, or dGPU (display + peripherals)."""
         plat = None
         if not on_ac and bat_w is not None and bat_w < -0.05:
             plat = -bat_w
@@ -76,7 +76,7 @@ class Sampler:
             plat = psys
         if plat is None or plat < 0:
             return -1.0
-        return max(plat - max(package or 0.0, 0.0) - max(dram or 0.0, 0.0), 0.0)
+        return max(plat - max(package or 0.0, 0.0) - max(dram or 0.0, 0.0) - max(dgpu or 0.0, 0.0), 0.0)
 
     def sample(self, hot=True):
         now = time.monotonic()
@@ -105,7 +105,7 @@ class Sampler:
             "dram": rapl.get("dram", -1.0),
             "dgpu": nv.get("gpu_power_w", 0.0),
         }
-        raw["rest"] = self._rest(raw["psys"], raw["package"], raw["dram"], raw["bat_w"], on_ac)
+        raw["rest"] = self._rest(raw["psys"], raw["package"], raw["dram"], raw["bat_w"], on_ac, raw["dgpu"])
         self.raw = raw
 
         # ---- smoothed inputs ----
