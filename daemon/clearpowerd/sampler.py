@@ -13,11 +13,12 @@ from .sources.usbpd import Adapter
 from .sources.rapl import Rapl
 from .sources.backlight import Backlight
 from .sources.hwmon import Hwmon
+from .sources.nvidia import NvidiaGpu
 from .sources.procs import Procs
 from .smoothing import Ema
 from .sysfs import read_str
 
-SMOOTHED = ("bat_w", "psys", "package", "core", "uncore", "dram")
+SMOOTHED = ("bat_w", "psys", "package", "core", "uncore", "dram", "dgpu")
 
 
 class Sampler:
@@ -26,6 +27,7 @@ class Sampler:
         self.battery = Battery(cfg["battery"])
         self.adapter = Adapter()
         self.rapl = Rapl()
+        self.nvidia = NvidiaGpu()
         self.backlight = Backlight()
         self.hwmon = Hwmon()
         self.procs = Procs(cfg["procs_interval_s"])
@@ -65,11 +67,16 @@ class Sampler:
         return self.ema[key].update(value, now)
 
     @staticmethod
-    def _rest(psys, package, dram):
-        """Platform power not attributable to the SoC or memory (display + peripherals)."""
-        if psys is None or psys < 0:
+    def _rest(psys, package, dram, bat_w=None, on_ac=True, dgpu=0.0):
+        """Platform power not attributable to the SoC, memory, or dGPU (display + peripherals)."""
+        plat = None
+        if not on_ac and bat_w is not None and bat_w < -0.05:
+            plat = -bat_w
+        elif psys is not None and psys > 0 and (package is None or package <= 0 or psys >= package * 0.7):
+            plat = psys
+        if plat is None or plat < 0:
             return -1.0
-        return max(psys - max(package or 0.0, 0.0) - max(dram or 0.0, 0.0), 0.0)
+        return max(plat - max(package or 0.0, 0.0) - max(dram or 0.0, 0.0) - max(dgpu or 0.0, 0.0), 0.0)
 
     def sample(self, hot=True):
         now = time.monotonic()
@@ -77,11 +84,15 @@ class Sampler:
         bat = self.battery.read()
         ad = self.adapter.read()
         rapl = self.rapl.read()
+        nv = self.nvidia.read() if getattr(self, "nvidia", None) is not None else {"gpu_power_w": 0.0, "temp_gpu": -1.0}
         bl = self.backlight.read()
         snap.update(bat)
         snap.update(ad)
         snap.update(bl)
-        snap.update(self._thermal_read(hot))
+        thermal = self._thermal_read(hot)
+        if nv.get("temp_gpu", -1.0) > 0 and thermal.get("temp_gpu", -1.0) < 0:
+            thermal["temp_gpu"] = nv["temp_gpu"]
+        snap.update(thermal)
         on_ac = ad["on_ac"]
 
         # ---- raw inputs (for history / runtime / calibration) ----
@@ -92,8 +103,9 @@ class Sampler:
             "core": rapl.get("core", -1.0),
             "uncore": rapl.get("uncore", -1.0),
             "dram": rapl.get("dram", -1.0),
+            "dgpu": nv.get("gpu_power_w", 0.0),
         }
-        raw["rest"] = self._rest(raw["psys"], raw["package"], raw["dram"])
+        raw["rest"] = self._rest(raw["psys"], raw["package"], raw["dram"], raw["bat_w"], on_ac, raw["dgpu"])
         self.raw = raw
 
         # ---- smoothed inputs ----
@@ -104,13 +116,26 @@ class Sampler:
         core = self._smooth("core", raw["core"], now)
         uncore = self._smooth("uncore", raw["uncore"], now)
         dram = self._smooth("dram", raw["dram"], now)
+        dgpu = self._smooth("dgpu", raw["dgpu"], now) if "dgpu" in self.ema else 0.0
+        dgpu = max(dgpu, 0.0)
+
         # ---- whole-machine draw ----
+        psys_valid = psys > 0 and (package <= 0 or psys >= package * 0.7)
+        disp_est = 0.0
         if not on_ac and bat_w < -0.05:
             sys_w, sys_source = -bat_w, "battery"      # physical truth incl. all losses
-        elif psys > 0:
+        elif psys_valid:
             sys_w, sys_source = psys, "psys"
         elif package > 0:
-            sys_w, sys_source = package + 3.0, "estimate"
+            if bl.get("display_on", True):
+                if self.display_cal is not None and bl.get("brightness_raw") is not None:
+                    e = self.display_cal.emission_w(bl.get("brightness_raw"), now)
+                    disp_est = max(e, 0.0) if e >= 0 else (bl.get("brightness_pct", 50.0) / 100.0 * 5.0)
+                else:
+                    disp_est = bl.get("brightness_pct", 50.0) / 100.0 * 5.0
+            base_other = 3.0
+            sys_w = package + max(dram or 0.0, 0.0) + dgpu + disp_est + base_other
+            sys_source = "estimate"
         else:
             sys_w, sys_source = -1.0, "none"
 
@@ -119,10 +144,11 @@ class Sampler:
         rest_w = -1.0
         if package > 0 and sys_w > 0:
             cpu_w = max(core, 0.0)
-            gpu_w = max(uncore, 0.0)
-            soc_w = max(package - cpu_w - gpu_w, 0.0)
+            igpu_w = max(uncore, 0.0)
+            soc_w = max(package - cpu_w - igpu_w, 0.0)
+            gpu_w = igpu_w + dgpu
             mem_w = max(dram, 0.0)
-            measured = package + mem_w
+            measured = package + mem_w + dgpu
             if measured > sys_w:  # psys occasionally undershoots; keep the total authoritative
                 k = sys_w / measured
                 cpu_w, gpu_w, soc_w, mem_w = cpu_w * k, gpu_w * k, soc_w * k, mem_w * k
@@ -133,10 +159,14 @@ class Sampler:
 
         display_w = -1.0
         other_w = rest_w
-        if self.display_cal is not None and rest_w >= 0:
-            e = self.display_cal.emission_w(bl.get("brightness_raw"), now)
-            if e >= 0:
-                display_w = 0.0 if not bl["display_on"] else min(e, rest_w)
+        if rest_w >= 0:
+            if self.display_cal is not None:
+                e = self.display_cal.emission_w(bl.get("brightness_raw"), now)
+                if e >= 0:
+                    display_w = 0.0 if not bl.get("display_on", True) else min(e, rest_w)
+                    other_w = rest_w - display_w
+            if display_w < 0 and sys_source == "estimate":
+                display_w = min(disp_est, rest_w)
                 other_w = rest_w - display_w
 
         # Adapter supplies the machine (minus whatever the battery is contributing when the
